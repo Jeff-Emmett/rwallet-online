@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Visualizations | wallets.bondingcurve.tech</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #00d4ff;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 50px;
+            font-size: 1.1rem;
+        }
+        .wallet-address {
+            text-align: center;
+            font-family: monospace;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 0.9rem;
+        }
+        .wallet-address a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+        .wallet-address a:hover {
+            text-decoration: underline;
+        }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+        .card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .card:hover {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(0, 212, 255, 0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.1);
+        }
+        .card h2 {
+            color: #00d4ff;
+            margin-bottom: 12px;
+            font-size: 1.4rem;
+        }
+        .card p {
+            color: #888;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+        .card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+        .card .features {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .card .features li {
+            color: #666;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            list-style: none;
+            padding-left: 20px;
+            position: relative;
+        }
+        .card .features li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #00d4ff;
+        }
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            color: #555;
+            font-size: 0.85rem;
+        }
+        footer a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Wallet Visualizations</h1>
+        <p class="subtitle">Interactive multi-chain Safe wallet analytics</p>
+
+        <p class="wallet-address">
+            Analyzing: <a href="https://app.safe.global/transactions/history?safe=gno:0x29567BdBcC92aCF37AC6B56B69180857bB69f7D1" target="_blank">0x29567BdBcC92aCF37AC6B56B69180857bB69f7D1</a>
+        </p>
+
+        <div class="cards">
+            <a href="wallet-timeline-visualization.html" class="card">
+                <div class="icon">🌊</div>
+                <h2>Balance River Timeline</h2>
+                <p>Watch funds flow through the wallet over time. The river thickness represents balance, with inflows (green→blue) and outflows (blue→red) showing money movement.</p>
+                <ul class="features">
+                    <li>Scroll to zoom into time periods</li>
+                    <li>Horizontal scroll/drag to pan</li>
+                    <li>Hover river for balance at any point</li>
+                    <li>Flow width = transaction size</li>
+                </ul>
+            </a>
+
+            <a href="wallet-multichain-visualization.html" class="card">
+                <div class="icon">🔗</div>
+                <h2>Multi-Chain Flow Analysis</h2>
+                <p>Sankey diagram showing fund flows across all chains. Filter by chain to see activity on Gnosis, Ethereum, Avalanche, Optimism, and Arbitrum.</p>
+                <ul class="features">
+                    <li>Interactive chain filtering</li>
+                    <li>Flow diagram with addresses</li>
+                    <li>Transaction tables per chain</li>
+                    <li>Stats breakdown by direction</li>
+                </ul>
+            </a>
+
+            <a href="wallet-visualization.html" class="card">
+                <div class="icon">📊</div>
+                <h2>Gnosis Chain Overview</h2>
+                <p>Original single-chain Sankey visualization focused on Gnosis chain transactions including WXDAI, TEC tokens, and other activity.</p>
+                <ul class="features">
+                    <li>Simple Sankey flow diagram</li>
+                    <li>Address-level breakdown</li>
+                    <li>Gnosis chain focused</li>
+                    <li>Transaction details on hover</li>
+                </ul>
+            </a>
+        </div>
+
+        <footer>
+            <p>Built with D3.js | Data from <a href="https://safe.global" target="_blank">Safe Global API</a></p>
+        </footer>
+    </div>
+</body>
+</html>
