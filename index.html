@@ -523,6 +523,7 @@
     <!-- Hero -->
     <section class="hero">
         <div class="badge">Part of the rSpace Ecosystem</div>
+        <div id="encryptid-auth" style="margin-bottom:16px;min-height:32px;"></div>
         <h1><span>Democratic Wallet Management</span><br>for Communities</h1>
         <p class="hero-sub">
             Interactive visualizations for <strong>group treasury management</strong>.
@@ -750,7 +751,11 @@
         <p>No backend. No tracking. All data fetched client-side from public APIs.</p>
     </footer>
 
+    <script src="js/encryptid.js"></script>
     <script>
+        // ─── EncryptID Auth ────────────────────────────────────────
+        EncryptID.renderAuthButton('encryptid-auth');
+
         // ─── Wallet Input Logic ────────────────────────────────────
         const DEMO_ADDRESS = '0x29567BdBcC92aCF37AC6B56B69180857bB69f7D1';
 
