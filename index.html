@@ -444,10 +444,13 @@
 
         .steps-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 20px;
             max-width: 900px;
             margin: 0 auto;
+        }
+        @media (max-width: 640px) {
+            .steps-row { grid-template-columns: repeat(2, 1fr); }
         }
 
         .step {
