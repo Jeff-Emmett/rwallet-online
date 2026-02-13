@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wallet Timeline - 0x2956...7D1</title>
+    <title>Balance River | rWallet.online</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="js/safe-api.js"></script>
+    <script src="js/data-transform.js"></script>
+    <script src="js/router.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -14,389 +17,275 @@
             min-height: 100vh;
             padding: 20px;
         }
-        h1 {
-            text-align: center;
-            margin-bottom: 10px;
-            color: #00d4ff;
-            font-size: 1.8rem;
+        h1 { text-align: center; margin-bottom: 10px; color: #00d4ff; font-size: 1.8rem; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 20px; font-family: monospace; font-size: 0.9rem; }
+        .container { max-width: 1800px; margin: 0 auto; }
+
+        /* Address Bar */
+        .address-bar { margin-bottom: 24px; }
+        .address-bar-inner {
+            display: flex; gap: 10px; align-items: center; max-width: 700px; margin: 0 auto;
         }
-        .subtitle {
-            text-align: center;
-            color: #888;
-            margin-bottom: 30px;
-            font-family: monospace;
-            font-size: 0.9rem;
+        .back-link {
+            color: #00d4ff; text-decoration: none; font-weight: 600; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 4px; white-space: nowrap;
+            padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(0,212,255,0.3);
+            background: rgba(0,212,255,0.05); transition: all 0.2s;
         }
-        .container {
-            max-width: 1800px;
-            margin: 0 auto;
+        .back-link:hover { background: rgba(0,212,255,0.1); }
+        .back-icon { font-size: 1.1rem; }
+        #wallet-input {
+            flex: 1; padding: 10px 16px; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05);
+            color: #e0e0e0; font-family: monospace; font-size: 0.9rem; outline: none;
+            transition: border-color 0.3s;
         }
+        #wallet-input:focus { border-color: #00d4ff; }
+        #load-wallet-btn {
+            padding: 10px 20px; border-radius: 8px; border: none;
+            background: #00d4ff; color: #000; font-weight: 600; cursor: pointer;
+            transition: background 0.2s;
+        }
+        #load-wallet-btn:hover { background: #00b8d9; }
 
         /* Controls */
         .controls {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            align-items: center;
+            display: flex; justify-content: center; gap: 16px; margin-bottom: 24px;
+            flex-wrap: wrap; align-items: center;
         }
-        .control-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .control-group { display: flex; align-items: center; gap: 8px; }
+        .control-group label { font-size: 0.85rem; color: #888; }
+        select, button.ctrl-btn {
+            padding: 8px 16px; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05);
+            color: #e0e0e0; font-size: 0.85rem; cursor: pointer;
         }
-        .control-group label {
-            font-size: 0.85rem;
-            color: #888;
-        }
-        select, button {
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(255,255,255,0.05);
-            color: #e0e0e0;
-            font-size: 0.85rem;
-            cursor: pointer;
-        }
-        select:hover, button:hover {
-            background: rgba(255,255,255,0.1);
-        }
+        select:hover, button.ctrl-btn:hover { background: rgba(255,255,255,0.1); }
 
         /* Legend */
-        .legend {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .legend-flow {
-            width: 50px;
-            height: 20px;
-            border-radius: 10px;
-        }
-        .legend-flow.inflow {
-            background: linear-gradient(180deg, #4ade80 0%, #22d3ee 50%, #00d4ff 100%);
-        }
-        .legend-flow.outflow {
-            background: linear-gradient(180deg, #00d4ff 0%, #f472b6 50%, #f87171 100%);
-        }
-        .legend-flow.balance {
-            background: linear-gradient(180deg, #00d4ff 0%, #0891b2 50%, #00d4ff 100%);
-            border: 1px solid rgba(0,212,255,0.3);
-        }
+        .legend { display: flex; justify-content: center; gap: 40px; margin-bottom: 20px; font-size: 0.9rem; }
+        .legend-item { display: flex; align-items: center; gap: 10px; }
+        .legend-flow { width: 50px; height: 20px; border-radius: 10px; }
+        .legend-flow.inflow { background: linear-gradient(180deg, #4ade80 0%, #22d3ee 50%, #00d4ff 100%); }
+        .legend-flow.outflow { background: linear-gradient(180deg, #00d4ff 0%, #f472b6 50%, #f87171 100%); }
+        .legend-flow.balance { background: linear-gradient(180deg, #00d4ff 0%, #0891b2 50%, #00d4ff 100%); border: 1px solid rgba(0,212,255,0.3); }
 
-        /* Timeline Chart */
+        /* Timeline */
         .timeline-section {
-            background: rgba(255,255,255,0.02);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-            border: 1px solid rgba(255,255,255,0.1);
-            overflow-x: auto;
+            background: rgba(255,255,255,0.02); border-radius: 16px; padding: 24px;
+            margin-bottom: 24px; border: 1px solid rgba(255,255,255,0.1); overflow-x: auto;
         }
-        #timeline-chart {
-            width: 100%;
-            min-height: 600px;
-        }
+        #timeline-chart { width: 100%; min-height: 600px; }
 
         /* Tooltip */
         .tooltip {
-            position: absolute;
-            background: rgba(10, 10, 20, 0.98);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 10px;
-            padding: 14px 18px;
-            font-size: 0.85rem;
-            pointer-events: none;
-            z-index: 1000;
-            max-width: 320px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            position: absolute; background: rgba(10, 10, 20, 0.98);
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 10px;
+            padding: 14px 18px; font-size: 0.85rem; pointer-events: none;
+            z-index: 1000; max-width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
         }
         .tooltip .date { color: #888; font-size: 0.75rem; margin-bottom: 6px; }
         .tooltip .amount { font-weight: bold; font-size: 1.3rem; display: block; margin-bottom: 4px; }
         .tooltip .amount.inflow { color: #4ade80; }
         .tooltip .amount.outflow { color: #f87171; }
         .tooltip .token { color: #00d4ff; font-size: 0.9rem; }
-        .tooltip .address {
-            font-family: monospace;
-            font-size: 0.75rem;
-            color: #888;
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        .tooltip .chain-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        .tooltip .balance-info {
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            font-size: 0.8rem;
-            color: #00d4ff;
-        }
+        .tooltip .address { font-family: monospace; font-size: 0.75rem; color: #888; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .tooltip .chain-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; margin-bottom: 8px; }
+        .tooltip .balance-info { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem; color: #00d4ff; }
 
-        /* Stats row */
+        /* Stats */
         .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 12px;
-            margin-bottom: 24px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px; margin-bottom: 24px;
         }
         .stat-card {
-            background: rgba(255,255,255,0.03);
-            border-radius: 10px;
-            padding: 14px;
-            border: 1px solid rgba(255,255,255,0.1);
-            text-align: center;
+            background: rgba(255,255,255,0.03); border-radius: 10px; padding: 14px;
+            border: 1px solid rgba(255,255,255,0.1); text-align: center;
         }
-        .stat-card h4 {
-            color: #888;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-        .stat-card .value {
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
+        .stat-card h4 { color: #888; font-size: 0.65rem; text-transform: uppercase; margin-bottom: 6px; }
+        .stat-card .value { font-size: 1.2rem; font-weight: bold; }
         .stat-card .value.inflow { color: #4ade80; }
         .stat-card .value.outflow { color: #f87171; }
         .stat-card .value.balance { color: #00d4ff; }
 
-        /* Chain colors for tooltip */
         .chain-badge.gnosis { background: #04795b; }
         .chain-badge.ethereum { background: #627eea; }
         .chain-badge.avalanche { background: #e84142; }
         .chain-badge.optimism { background: #ff0420; }
         .chain-badge.arbitrum { background: #28a0f0; }
+        .chain-badge.polygon { background: #8247e5; }
+        .chain-badge.base { background: #0052ff; }
 
-        /* Flow paths */
-        .flow-path {
-            transition: opacity 0.2s, filter 0.2s;
-            cursor: pointer;
-        }
-        .flow-path:hover {
-            opacity: 1 !important;
-            filter: brightness(1.3);
-        }
+        .flow-path { transition: opacity 0.2s, filter 0.2s; cursor: pointer; }
+        .flow-path:hover { opacity: 1 !important; filter: brightness(1.3); }
 
-        /* Instructions */
-        .instructions {
-            text-align: center;
-            color: #666;
-            font-size: 0.8rem;
-            margin-bottom: 16px;
-        }
+        .instructions { text-align: center; color: #666; font-size: 0.8rem; margin-bottom: 16px; }
+        .river-hover-area { cursor: crosshair; }
+        .balance-indicator { pointer-events: none; }
 
-        /* River hover area */
-        .river-hover-area {
-            cursor: crosshair;
+        /* Loading */
+        .loading { text-align: center; padding: 80px 20px; color: #888; }
+        .loading .spinner {
+            width: 40px; height: 40px; border: 3px solid rgba(0,212,255,0.2);
+            border-top-color: #00d4ff; border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin: 0 auto 16px;
         }
-
-        /* Balance indicator line */
-        .balance-indicator {
-            pointer-events: none;
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error { text-align: center; padding: 60px 20px; color: #f87171; }
+        .empty { text-align: center; padding: 60px 20px; color: #666; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📈 Wallet Balance River</h1>
-        <p class="subtitle">0x29567BdBcC92aCF37AC6B56B69180857bB69f7D1</p>
+        <h1>Wallet Balance River</h1>
+        <p class="subtitle" id="wallet-subtitle">Enter a Safe wallet address to visualize</p>
 
-        <!-- Stats -->
-        <div class="stats-row">
-            <div class="stat-card">
-                <h4>Total Inflow</h4>
-                <div class="value inflow" id="total-inflow">$0</div>
-            </div>
-            <div class="stat-card">
-                <h4>Total Outflow</h4>
-                <div class="value outflow" id="total-outflow">$0</div>
-            </div>
-            <div class="stat-card">
-                <h4>Net Change</h4>
-                <div class="value balance" id="net-change">$0</div>
-            </div>
-            <div class="stat-card">
-                <h4>Peak Balance</h4>
-                <div class="value balance" id="peak-balance">$0</div>
-            </div>
-            <div class="stat-card">
-                <h4>Transactions</h4>
-                <div class="value" id="tx-count">0</div>
-            </div>
-        </div>
+        <div id="address-bar-container"></div>
 
-        <!-- Controls -->
-        <div class="controls">
-            <div class="control-group">
-                <label>Filter Chain:</label>
-                <select id="chain-filter">
-                    <option value="all">All Chains</option>
-                    <option value="gnosis">Gnosis</option>
-                    <option value="ethereum">Ethereum</option>
-                    <option value="avalanche">Avalanche</option>
-                    <option value="optimism">Optimism</option>
-                    <option value="arbitrum">Arbitrum</option>
-                </select>
+        <div id="content">
+            <div class="empty">
+                <p style="font-size:1.2rem; margin-bottom:8px;">Enter a Safe wallet address above to get started</p>
+                <p>Or try the demo: <a href="?address=0x29567BdBcC92aCF37AC6B56B69180857bB69f7D1" style="color:#00d4ff;">TEC Commons Fund</a></p>
             </div>
-            <div class="control-group">
-                <label>Filter Token:</label>
-                <select id="token-filter">
-                    <option value="all">All Tokens</option>
-                    <option value="usdc">Stablecoins Only</option>
-                    <option value="tec">TEC Only</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <button id="reset-zoom">Reset View</button>
-            </div>
-        </div>
-
-        <p class="instructions">🖱️ <strong>Scroll up/down to zoom</strong> • <strong>Scroll left/right (or Shift+scroll) to pan</strong> • <strong>Click and drag</strong> to pan • Hover for details</p>
-
-        <!-- Legend -->
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-flow inflow"></div>
-                <span>Inflows (green → blue)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-flow balance"></div>
-                <span>Balance River</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-flow outflow"></div>
-                <span>Outflows (blue → red)</span>
-            </div>
-        </div>
-
-        <!-- Timeline Chart -->
-        <div class="timeline-section">
-            <div id="timeline-chart"></div>
         </div>
     </div>
 
     <div class="tooltip" id="tooltip" style="display: none;"></div>
 
     <script>
-        // Transaction data with USD values
-        const transactions = [
-            // Gnosis Chain
-            { date: '2023-03-22', type: 'in', amount: 1, token: 'TEC', usd: 0.5, chain: 'gnosis', from: '0x763d...87d4' },
-            { date: '2023-03-28', type: 'in', amount: 17000, token: 'WXDAI', usd: 17000, chain: 'gnosis', from: '0x01d9...17bD' },
-            { date: '2023-04-26', type: 'out', amount: 2306, token: 'WXDAI', usd: 2306, chain: 'gnosis', to: '0x9b55...0b4d' },
-            { date: '2023-04-26', type: 'out', amount: 1050, token: 'WXDAI', usd: 1050, chain: 'gnosis', to: '0x763d...87d4' },
-            { date: '2023-04-26', type: 'out', amount: 910, token: 'WXDAI', usd: 910, chain: 'gnosis', to: '0x1409...8fC' },
-            { date: '2023-05-11', type: 'out', amount: 500, token: 'WXDAI', usd: 500, chain: 'gnosis', to: '0xb282...587b' },
-            { date: '2023-06-07', type: 'out', amount: 8925, token: 'WXDAI', usd: 8925, chain: 'gnosis', to: 'Multiple recipients' },
-            { date: '2023-07-05', type: 'in', amount: 3625, token: 'TEC', usd: 1812, chain: 'gnosis', from: '0x9b55...0b4d' },
-            { date: '2023-09-10', type: 'out', amount: 3309, token: 'WXDAI', usd: 3309, chain: 'gnosis', to: '0x9b55...0b4d' },
-            { date: '2023-10-04', type: 'in', amount: 631, token: 'WXDAI', usd: 631, chain: 'gnosis', from: '0x763d...87d4' },
-            { date: '2023-10-04', type: 'out', amount: 1531, token: 'TEC', usd: 766, chain: 'gnosis', to: '0x763d...87d4' },
-            { date: '2023-10-14', type: 'in', amount: 9710, token: 'TEC', usd: 4855, chain: 'gnosis', from: '0x5138...Ad00' },
-            { date: '2023-10-18', type: 'in', amount: 2566, token: 'WXDAI', usd: 2566, chain: 'gnosis', from: '0x9b55...0b4d' },
-            { date: '2023-10-18', type: 'out', amount: 5900, token: 'TEC', usd: 2950, chain: 'gnosis', to: '0x9b55...0b4d' },
-            { date: '2023-10-26', type: 'out', amount: 2500, token: 'WXDAI', usd: 2500, chain: 'gnosis', to: '0x9b55...0b4d' },
-            { date: '2023-11-01', type: 'out', amount: 736, token: 'WXDAI+TEC', usd: 618, chain: 'gnosis', to: 'Multiple recipients' },
-            { date: '2023-12-15', type: 'out', amount: 5866, token: 'TEC+WXDAI', usd: 3130, chain: 'gnosis', to: '0x7785...3707' },
+        Router.createAddressBar('address-bar-container');
 
-            // Ethereum
-            { date: '2024-04-09', type: 'in', amount: 10000, token: 'USDC', usd: 10000, chain: 'ethereum', from: '0xda1A...eE61' },
-            { date: '2024-04-10', type: 'out', amount: 10000, token: 'USDC', usd: 10000, chain: 'ethereum', to: '0xB90B...6a98' },
-            { date: '2024-05-08', type: 'in', amount: 10000, token: 'USDC', usd: 10000, chain: 'ethereum', from: '0xda1A...eE61' },
-            { date: '2024-05-14', type: 'in', amount: 12500, token: 'USDC', usd: 12500, chain: 'ethereum', from: '0xA834...21F4' },
-            { date: '2024-05-14', type: 'out', amount: 10000, token: 'USDC', usd: 10000, chain: 'ethereum', to: '0xB90B...6a98' },
-            { date: '2024-06-12', type: 'in', amount: 10000, token: 'USDC', usd: 10000, chain: 'ethereum', from: '0xda1A...eE61' },
-            { date: '2024-06-12', type: 'out', amount: 10000, token: 'USDC', usd: 10000, chain: 'ethereum', to: '0xB90B...6a98' },
-            { date: '2024-06-28', type: 'in', amount: 6000, token: 'USDC', usd: 6000, chain: 'ethereum', from: '0xda1A...eE61' },
-
-            // Arbitrum
-            { date: '2024-10-28', type: 'in', amount: 17, token: 'USDC', usd: 17, chain: 'arbitrum', from: '0x8e1b...a174' },
-            { date: '2024-10-30', type: 'in', amount: 8, token: 'ARB', usd: 12, chain: 'arbitrum', from: '0x8e1b...a174' },
-            { date: '2024-10-31', type: 'in', amount: 500, token: 'USDC', usd: 500, chain: 'arbitrum', from: '0x8e1b...a174' },
-            { date: '2024-11-04', type: 'in', amount: 13, token: 'Mixed', usd: 20, chain: 'arbitrum', from: '0x8e1b...a174' },
-            { date: '2024-11-06', type: 'in', amount: 5, token: 'Mixed', usd: 8, chain: 'arbitrum', from: '0x8e1b...a174' },
-            { date: '2024-11-25', type: 'in', amount: 2601, token: 'USDC', usd: 2601, chain: 'arbitrum', from: '0xd2d9...6271' },
-
-            // Avalanche
-            { date: '2025-03-04', type: 'in', amount: 0.007, token: 'AVAX', usd: 0.25, chain: 'avalanche', from: '0xc13f...' },
-            { date: '2025-03-10', type: 'in', amount: 0.42, token: 'AVAX', usd: 15, chain: 'avalanche', from: '0xc13f...' },
-            { date: '2025-03-17', type: 'in', amount: 12500, token: 'USDC', usd: 12500, chain: 'avalanche', from: '0x5129...Cd17' },
-            { date: '2025-04-17', type: 'out', amount: 7140, token: 'USDC', usd: 7140, chain: 'avalanche', to: 'Multiple recipients' },
-            { date: '2025-05-07', type: 'in', amount: 0.62, token: 'AVAX', usd: 22, chain: 'avalanche', from: '0xc13f...' },
-            { date: '2025-05-13', type: 'out', amount: 3220, token: 'USDC+AVAX', usd: 6850, chain: 'avalanche', to: 'Multiple recipients' },
-
-            // Optimism
-            { date: '2025-02-06', type: 'out', amount: 5740, token: 'DAI+USDC', usd: 5740, chain: 'optimism', to: 'Multiple recipients' },
-
-            // More recent
-            { date: '2025-10-02', type: 'in', amount: 0.65, token: 'AVAX', usd: 23, chain: 'avalanche', from: '0xc13f...' },
-            { date: '2025-11-29', type: 'in', amount: 3876, token: 'Yield-USD', usd: 3876, chain: 'ethereum', from: '0x1545...87d4' },
-            { date: '2025-12-01', type: 'out', amount: 4620, token: 'USDC', usd: 4620, chain: 'ethereum', to: '0x763d...87d4' },
-            { date: '2025-12-18', type: 'in', amount: 2537, token: 'USDC', usd: 2537, chain: 'avalanche', from: 'CoW Protocol' },
-            { date: '2025-12-18', type: 'out', amount: 4677, token: 'USDC', usd: 4677, chain: 'avalanche', to: 'Multiple recipients' },
-            { date: '2025-12-18', type: 'out', amount: 677, token: 'USDC', usd: 677, chain: 'arbitrum', to: '0x09b0...9822' },
-            { date: '2025-12-19', type: 'out', amount: 6090, token: 'USDC', usd: 6090, chain: 'ethereum', to: '0x0acE...6b87e' },
-            { date: '2026-01-22', type: 'out', amount: 5000, token: 'USDC', usd: 5000, chain: 'ethereum', to: '0xAbf5...7749' },
-            { date: '2026-01-22', type: 'out', amount: 5000, token: 'USDC', usd: 5000, chain: 'arbitrum', to: '0x9425...a083' },
-            { date: '2026-01-29', type: 'in', amount: 0.83, token: 'AVAX', usd: 30, chain: 'avalanche', from: '0x9a9E...' },
-        ].map(tx => ({ ...tx, date: new Date(tx.date) })).sort((a, b) => a.date - b.date);
-
+        let transactions = [];
         let currentFilter = { chain: 'all', token: 'all' };
         let currentZoomTransform = d3.zoomIdentity;
-
-        function filterTransactions() {
-            return transactions.filter(tx => {
-                if (currentFilter.chain !== 'all' && tx.chain !== currentFilter.chain) return false;
-                if (currentFilter.token === 'usdc' && !['USDC', 'DAI', 'WXDAI'].some(t => tx.token.includes(t))) return false;
-                if (currentFilter.token === 'tec' && !tx.token.includes('TEC')) return false;
-                return true;
-            });
-        }
-
-        function calculateStats(txs) {
-            let totalIn = 0, totalOut = 0, balance = 0, peak = 0;
-
-            txs.forEach(tx => {
-                if (tx.type === 'in') {
-                    totalIn += tx.usd;
-                    balance += tx.usd;
-                } else {
-                    totalOut += tx.usd;
-                    balance -= tx.usd;
-                }
-                if (balance > peak) peak = balance;
-            });
-
-            document.getElementById('total-inflow').textContent = '$' + Math.round(totalIn).toLocaleString();
-            document.getElementById('total-outflow').textContent = '$' + Math.round(totalOut).toLocaleString();
-            document.getElementById('net-change').textContent = '$' + Math.round(totalIn - totalOut).toLocaleString();
-            document.getElementById('peak-balance').textContent = '$' + Math.round(peak).toLocaleString();
-            document.getElementById('tx-count').textContent = txs.length;
-        }
-
-        // Store references for zoom updates
         let svgElement, mainGroup, xScale, xAxisGroup, contentGroup;
         let txs, balanceData, maxBalance, maxTx, balanceScale, flowScale;
         let margin, width, height, centerY, timeExtent, timePadding;
 
+        async function loadWallet(address) {
+            const content = document.getElementById('content');
+            const subtitle = document.getElementById('wallet-subtitle');
+            subtitle.textContent = address;
+
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><p>Detecting Safe wallets across chains...</p></div>';
+
+            try {
+                const detected = await SafeAPI.detectSafeChains(address);
+                if (detected.length === 0) {
+                    content.innerHTML = '<div class="error"><p style="font-size:1.2rem;">No Safe wallet found at this address</p><p style="color:#888;margin-top:8px;">This tool works with Safe (Gnosis Safe) multi-sig wallets.</p></div>';
+                    return;
+                }
+
+                content.innerHTML = '<div class="loading"><div class="spinner"></div><p>Fetching transaction data across ' + detected.length + ' chain(s)...</p></div>';
+
+                const chainDataMap = await SafeAPI.fetchAllChainsData(address, detected);
+
+                // Transform to timeline format
+                transactions = DataTransform.transformToTimelineData(chainDataMap, address);
+
+                if (transactions.length === 0) {
+                    content.innerHTML = '<div class="empty"><p>No transactions found for this wallet</p></div>';
+                    return;
+                }
+
+                // Build chain filter options from actual data
+                const chainsInData = [...new Set(transactions.map(t => t.chain))];
+
+                // Render the visualization UI
+                content.innerHTML = `
+                    <div class="stats-row">
+                        <div class="stat-card"><h4>Total Inflow</h4><div class="value inflow" id="total-inflow">$0</div></div>
+                        <div class="stat-card"><h4>Total Outflow</h4><div class="value outflow" id="total-outflow">$0</div></div>
+                        <div class="stat-card"><h4>Net Change</h4><div class="value balance" id="net-change">$0</div></div>
+                        <div class="stat-card"><h4>Peak Balance</h4><div class="value balance" id="peak-balance">$0</div></div>
+                        <div class="stat-card"><h4>Transactions</h4><div class="value" id="tx-count">0</div></div>
+                    </div>
+
+                    <div class="controls">
+                        <div class="control-group">
+                            <label>Filter Chain:</label>
+                            <select id="chain-filter">
+                                <option value="all">All Chains</option>
+                                ${chainsInData.map(c => `<option value="${c}">${c.charAt(0).toUpperCase() + c.slice(1)}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label>Filter Token:</label>
+                            <select id="token-filter">
+                                <option value="all">All Tokens</option>
+                                <option value="usdc">Stablecoins Only</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <button class="ctrl-btn" id="reset-zoom">Reset View</button>
+                        </div>
+                    </div>
+
+                    <p class="instructions">Scroll up/down to zoom | Scroll left/right (or Shift+scroll) to pan | Click and drag to pan | Hover for details</p>
+
+                    <div class="legend">
+                        <div class="legend-item"><div class="legend-flow inflow"></div><span>Inflows (green -> blue)</span></div>
+                        <div class="legend-item"><div class="legend-flow balance"></div><span>Balance River</span></div>
+                        <div class="legend-item"><div class="legend-flow outflow"></div><span>Outflows (blue -> red)</span></div>
+                    </div>
+
+                    <div class="timeline-section"><div id="timeline-chart"></div></div>
+                `;
+
+                // Bind filter events
+                document.getElementById('chain-filter').addEventListener('change', e => {
+                    currentFilter.chain = e.target.value;
+                    currentZoomTransform = d3.zoomIdentity;
+                    drawTimeline();
+                });
+                document.getElementById('token-filter').addEventListener('change', e => {
+                    currentFilter.token = e.target.value;
+                    currentZoomTransform = d3.zoomIdentity;
+                    drawTimeline();
+                });
+                document.getElementById('reset-zoom').addEventListener('click', () => {
+                    currentZoomTransform = d3.zoomIdentity;
+                    if (svgElement && window.currentZoom) {
+                        svgElement.transition().duration(500).call(window.currentZoom.transform, d3.zoomIdentity);
+                    }
+                });
+
+                currentFilter = { chain: 'all', token: 'all' };
+                currentZoomTransform = d3.zoomIdentity;
+                drawTimeline();
+
+            } catch (err) {
+                content.innerHTML = `<div class="error"><p>Error: ${err.message}</p></div>`;
+                console.error(err);
+            }
+        }
+
+        function filterTransactions() {
+            return transactions.filter(tx => {
+                if (currentFilter.chain !== 'all' && tx.chain !== currentFilter.chain) return false;
+                if (currentFilter.token === 'usdc' && !tx.hasUsdEstimate) return false;
+                return true;
+            });
+        }
+
+        function calculateStats(txsList) {
+            let totalIn = 0, totalOut = 0, balance = 0, peak = 0;
+            txsList.forEach(tx => {
+                if (tx.type === 'in') { totalIn += tx.usd; balance += tx.usd; }
+                else { totalOut += tx.usd; balance -= tx.usd; }
+                if (balance > peak) peak = balance;
+            });
+            const el = id => document.getElementById(id);
+            if (el('total-inflow')) el('total-inflow').textContent = '$' + Math.round(totalIn).toLocaleString();
+            if (el('total-outflow')) el('total-outflow').textContent = '$' + Math.round(totalOut).toLocaleString();
+            if (el('net-change')) el('net-change').textContent = '$' + Math.round(totalIn - totalOut).toLocaleString();
+            if (el('peak-balance')) el('peak-balance').textContent = '$' + Math.round(peak).toLocaleString();
+            if (el('tx-count')) el('tx-count').textContent = txsList.length;
+        }
+
         function drawTimeline() {
             const container = document.getElementById('timeline-chart');
+            if (!container) return;
             container.innerHTML = '';
 
             txs = filterTransactions();
@@ -412,560 +301,278 @@
             height = 600 - margin.top - margin.bottom;
             centerY = height / 2;
 
-            // Create outer SVG
             svgElement = d3.select('#timeline-chart')
                 .append('svg')
                 .attr('width', width + margin.left + margin.right)
                 .attr('height', height + margin.top + margin.bottom)
                 .style('cursor', 'grab');
 
-            // Main group with margin
             mainGroup = svgElement.append('g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
 
-            // Gradients (in defs, outside clip)
             const defs = mainGroup.append('defs');
 
-            // Inflow gradient: green at top → cyan/blue at bottom (merging into river)
-            const inflowGradient = defs.append('linearGradient')
-                .attr('id', 'inflowGradient')
-                .attr('x1', '0%').attr('y1', '0%')
-                .attr('x2', '0%').attr('y2', '100%');
+            const inflowGradient = defs.append('linearGradient').attr('id', 'inflowGradient').attr('x1', '0%').attr('y1', '0%').attr('x2', '0%').attr('y2', '100%');
             inflowGradient.append('stop').attr('offset', '0%').attr('stop-color', '#4ade80').attr('stop-opacity', 0.3);
             inflowGradient.append('stop').attr('offset', '30%').attr('stop-color', '#4ade80').attr('stop-opacity', 0.8);
             inflowGradient.append('stop').attr('offset', '60%').attr('stop-color', '#22d3ee').attr('stop-opacity', 0.9);
             inflowGradient.append('stop').attr('offset', '85%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.95);
             inflowGradient.append('stop').attr('offset', '100%').attr('stop-color', '#00d4ff').attr('stop-opacity', 1);
 
-            // Outflow gradient: blue at top (leaving river) → red at bottom
-            const outflowGradient = defs.append('linearGradient')
-                .attr('id', 'outflowGradient')
-                .attr('x1', '0%').attr('y1', '0%')
-                .attr('x2', '0%').attr('y2', '100%');
+            const outflowGradient = defs.append('linearGradient').attr('id', 'outflowGradient').attr('x1', '0%').attr('y1', '0%').attr('x2', '0%').attr('y2', '100%');
             outflowGradient.append('stop').attr('offset', '0%').attr('stop-color', '#00d4ff').attr('stop-opacity', 1);
             outflowGradient.append('stop').attr('offset', '15%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.95);
             outflowGradient.append('stop').attr('offset', '40%').attr('stop-color', '#f472b6').attr('stop-opacity', 0.9);
             outflowGradient.append('stop').attr('offset', '70%').attr('stop-color', '#f87171').attr('stop-opacity', 0.8);
             outflowGradient.append('stop').attr('offset', '100%').attr('stop-color', '#f87171').attr('stop-opacity', 0.3);
 
-            // River gradient (vertical for depth effect)
-            const riverGradient = defs.append('linearGradient')
-                .attr('id', 'riverGradient')
-                .attr('x1', '0%').attr('y1', '0%')
-                .attr('x2', '0%').attr('y2', '100%');
+            const riverGradient = defs.append('linearGradient').attr('id', 'riverGradient').attr('x1', '0%').attr('y1', '0%').attr('x2', '0%').attr('y2', '100%');
             riverGradient.append('stop').attr('offset', '0%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.9);
             riverGradient.append('stop').attr('offset', '30%').attr('stop-color', '#0891b2').attr('stop-opacity', 1);
             riverGradient.append('stop').attr('offset', '50%').attr('stop-color', '#0e7490').attr('stop-opacity', 1);
             riverGradient.append('stop').attr('offset', '70%').attr('stop-color', '#0891b2').attr('stop-opacity', 1);
             riverGradient.append('stop').attr('offset', '100%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.9);
 
-            // Add clip path for content
-            defs.append('clipPath')
-                .attr('id', 'chart-clip')
-                .append('rect')
-                .attr('x', 0)
-                .attr('y', -margin.top)
-                .attr('width', width)
-                .attr('height', height + margin.top + margin.bottom);
+            defs.append('clipPath').attr('id', 'chart-clip').append('rect')
+                .attr('x', 0).attr('y', -margin.top).attr('width', width).attr('height', height + margin.top + margin.bottom);
 
-            // Time scale (base scale, will be transformed by zoom)
             timeExtent = d3.extent(txs, d => d.date);
             timePadding = (timeExtent[1] - timeExtent[0]) * 0.05;
             xScale = d3.scaleTime()
                 .domain([new Date(timeExtent[0].getTime() - timePadding), new Date(timeExtent[1].getTime() + timePadding)])
                 .range([0, width]);
 
-            // Calculate running balance for river thickness (smooth transitions)
             balanceData = [];
             let runningBalance = 0;
-
-            // Add initial point
-            balanceData.push({
-                date: new Date(timeExtent[0].getTime() - timePadding),
-                balance: 0,
-                tx: null
-            });
-
+            balanceData.push({ date: new Date(timeExtent[0].getTime() - timePadding), balance: 0, tx: null });
             txs.forEach(tx => {
-                if (tx.type === 'in') {
-                    runningBalance += tx.usd;
-                } else {
-                    runningBalance -= tx.usd;
-                }
-
-                balanceData.push({
-                    date: tx.date,
-                    balance: Math.max(0, runningBalance),
-                    tx: tx
-                });
+                if (tx.type === 'in') runningBalance += tx.usd;
+                else runningBalance -= tx.usd;
+                balanceData.push({ date: tx.date, balance: Math.max(0, runningBalance), tx: tx });
             });
-
-            // Add final point
-            balanceData.push({
-                date: new Date(timeExtent[1].getTime() + timePadding),
-                balance: Math.max(0, runningBalance),
-                tx: null
-            });
+            balanceData.push({ date: new Date(timeExtent[1].getTime() + timePadding), balance: Math.max(0, runningBalance), tx: null });
 
             maxBalance = d3.max(balanceData, d => d.balance) || 1;
             maxTx = d3.max(txs, d => d.usd) || 1;
 
-            // Scale for river thickness (balance) - make river more prominent
-            // Use linear scale for visual consistency with flows
-            balanceScale = d3.scaleLinear()
-                .domain([0, maxBalance])
-                .range([12, 100]);
+            balanceScale = d3.scaleLinear().domain([0, maxBalance]).range([12, 100]);
+            flowScale = d3.scaleLinear().domain([0, maxBalance]).range([0, 100 - 12]);
 
-            // Scale for flow width - MUST match balanceScale for visual consistency
-            // A $5k flow should create the same width as a $5k change in river
-            flowScale = d3.scaleLinear()
-                .domain([0, maxBalance])
-                .range([0, 100 - 12]);  // Match the balanceScale range difference
+            contentGroup = mainGroup.append('g').attr('clip-path', 'url(#chart-clip)').attr('class', 'content-group');
 
-            // Create content group with clip path (this will be transformed by zoom)
-            contentGroup = mainGroup.append('g')
-                .attr('clip-path', 'url(#chart-clip)')
-                .attr('class', 'content-group');
+            xAxisGroup = mainGroup.append('g').attr('class', 'x-axis').attr('transform', `translate(0, ${height + 20})`);
 
-            // X-axis group (below the clip, updates on zoom)
-            xAxisGroup = mainGroup.append('g')
-                .attr('class', 'x-axis')
-                .attr('transform', `translate(0, ${height + 20})`);
-
-            // Initial axis render
             updateAxis(xScale);
-
-            // Draw all content with current scale
             drawContent(xScale);
 
-            // Set up zoom behavior
             const zoom = d3.zoom()
-                .scaleExtent([0.5, 20])  // Min 0.5x, max 20x zoom
+                .scaleExtent([0.5, 20])
                 .translateExtent([[-width * 2, 0], [width * 3, height]])
                 .extent([[0, 0], [width, height]])
                 .on('zoom', zoomed)
                 .on('start', () => svgElement.style('cursor', 'grabbing'))
                 .on('end', () => svgElement.style('cursor', 'grab'));
 
-            // Custom wheel handler for horizontal scroll panning
             svgElement.on('wheel', function(event) {
                 event.preventDefault();
-
                 const currentTransform = currentZoomTransform;
-
-                // Check if it's primarily horizontal scrolling (shift+scroll or trackpad horizontal)
                 if (Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.shiftKey) {
-                    // Horizontal scroll = pan
                     const panAmount = event.deltaX !== 0 ? event.deltaX : event.deltaY;
                     const newTransform = currentTransform.translate(-panAmount * 0.5, 0);
                     svgElement.call(zoom.transform, newTransform);
                 } else {
-                    // Vertical scroll = zoom (default behavior)
                     const scaleFactor = event.deltaY > 0 ? 0.9 : 1.1;
-                    const [mouseX, mouseY] = d3.pointer(event);
-
-                    // Zoom centered on mouse position
+                    const [mouseX] = d3.pointer(event);
                     const newScale = Math.max(0.5, Math.min(20, currentTransform.k * scaleFactor));
                     const newX = mouseX - (mouseX - currentTransform.x) * (newScale / currentTransform.k);
                     const newTransform = d3.zoomIdentity.translate(newX, 0).scale(newScale);
-
                     svgElement.call(zoom.transform, newTransform);
                 }
             }, { passive: false });
 
             svgElement.call(zoom);
-
-            // Apply any saved transform
-            if (currentZoomTransform !== d3.zoomIdentity) {
-                svgElement.call(zoom.transform, currentZoomTransform);
-            }
-
-            // Store zoom for reset button
+            if (currentZoomTransform !== d3.zoomIdentity) svgElement.call(zoom.transform, currentZoomTransform);
             window.currentZoom = zoom;
 
-            // Labels (outside clip, static position)
-            mainGroup.append('text')
-                .attr('class', 'flow-label')
-                .attr('x', width / 2)
-                .attr('y', -60)
-                .attr('text-anchor', 'middle')
-                .attr('fill', '#4ade80')
-                .attr('font-size', '14px')
-                .attr('font-weight', 'bold')
-                .text('INFLOWS');
-
-            mainGroup.append('text')
-                .attr('class', 'flow-label')
-                .attr('x', width / 2)
-                .attr('y', height + 65)
-                .attr('text-anchor', 'middle')
-                .attr('fill', '#f87171')
-                .attr('font-size', '14px')
-                .attr('font-weight', 'bold')
-                .text('OUTFLOWS');
+            mainGroup.append('text').attr('x', width / 2).attr('y', -60).attr('text-anchor', 'middle')
+                .attr('fill', '#4ade80').attr('font-size', '14px').attr('font-weight', 'bold').text('INFLOWS');
+            mainGroup.append('text').attr('x', width / 2).attr('y', height + 65).attr('text-anchor', 'middle')
+                .attr('fill', '#f87171').attr('font-size', '14px').attr('font-weight', 'bold').text('OUTFLOWS');
         }
 
         function zoomed(event) {
             currentZoomTransform = event.transform;
             const newXScale = event.transform.rescaleX(xScale);
-
-            // Update axis with appropriate tick granularity
             updateAxis(newXScale);
-
-            // Redraw content with new scale
             drawContent(newXScale);
         }
 
         function updateAxis(scale) {
-            // Determine tick interval based on visible time range
             const domain = scale.domain();
             const timeSpan = domain[1] - domain[0];
             const days = timeSpan / (1000 * 60 * 60 * 24);
-
             let tickInterval, tickFormat;
-            if (days < 14) {
-                tickInterval = d3.timeDay.every(1);
-                tickFormat = d3.timeFormat('%b %d');
-            } else if (days < 60) {
-                tickInterval = d3.timeWeek.every(1);
-                tickFormat = d3.timeFormat('%b %d');
-            } else if (days < 180) {
-                tickInterval = d3.timeMonth.every(1);
-                tickFormat = d3.timeFormat('%b %Y');
-            } else if (days < 365) {
-                tickInterval = d3.timeMonth.every(2);
-                tickFormat = d3.timeFormat('%b %Y');
-            } else {
-                tickInterval = d3.timeMonth.every(3);
-                tickFormat = d3.timeFormat('%b %Y');
-            }
+            if (days < 14) { tickInterval = d3.timeDay.every(1); tickFormat = d3.timeFormat('%b %d'); }
+            else if (days < 60) { tickInterval = d3.timeWeek.every(1); tickFormat = d3.timeFormat('%b %d'); }
+            else if (days < 180) { tickInterval = d3.timeMonth.every(1); tickFormat = d3.timeFormat('%b %Y'); }
+            else if (days < 365) { tickInterval = d3.timeMonth.every(2); tickFormat = d3.timeFormat('%b %Y'); }
+            else { tickInterval = d3.timeMonth.every(3); tickFormat = d3.timeFormat('%b %Y'); }
 
-            const xAxis = d3.axisBottom(scale)
-                .ticks(tickInterval)
-                .tickFormat(tickFormat);
-
-            xAxisGroup.call(xAxis)
-                .selectAll('text')
-                .attr('fill', '#888')
-                .attr('font-size', '11px')
-                .attr('transform', 'rotate(-30)')
-                .attr('text-anchor', 'end');
-
-            xAxisGroup.selectAll('.domain, .tick line')
-                .attr('stroke', '#444');
+            const xAxis = d3.axisBottom(scale).ticks(tickInterval).tickFormat(tickFormat);
+            xAxisGroup.call(xAxis).selectAll('text').attr('fill', '#888').attr('font-size', '11px').attr('transform', 'rotate(-30)').attr('text-anchor', 'end');
+            xAxisGroup.selectAll('.domain, .tick line').attr('stroke', '#444');
         }
 
         function drawContent(scale) {
-            // Clear previous content
             contentGroup.selectAll('*').remove();
-
-            // Use smooth curve for organic river shape
             const smoothCurve = d3.curveBasis;
 
-            // River outer glow/shadow
-            contentGroup.append('path')
-                .datum(balanceData)
-                .attr('fill', 'rgba(0, 212, 255, 0.08)')
-                .attr('d', d3.area()
-                    .x(d => scale(d.date))
-                    .y0(d => centerY + balanceScale(d.balance) / 2 + 15)
-                    .y1(d => centerY - balanceScale(d.balance) / 2 - 15)
-                    .curve(smoothCurve)
-                );
+            // River glow
+            contentGroup.append('path').datum(balanceData).attr('fill', 'rgba(0, 212, 255, 0.08)')
+                .attr('d', d3.area().x(d => scale(d.date)).y0(d => centerY + balanceScale(d.balance) / 2 + 15).y1(d => centerY - balanceScale(d.balance) / 2 - 15).curve(smoothCurve));
 
-            // Main river with smooth organic edges
-            const riverArea = d3.area()
-                .x(d => scale(d.date))
-                .y0(d => centerY + balanceScale(d.balance) / 2)
-                .y1(d => centerY - balanceScale(d.balance) / 2)
-                .curve(smoothCurve);
+            // Main river
+            contentGroup.append('path').datum(balanceData).attr('fill', 'url(#riverGradient)')
+                .attr('d', d3.area().x(d => scale(d.date)).y0(d => centerY + balanceScale(d.balance) / 2).y1(d => centerY - balanceScale(d.balance) / 2).curve(smoothCurve));
 
-            contentGroup.append('path')
-                .datum(balanceData)
-                .attr('fill', 'url(#riverGradient)')
-                .attr('d', riverArea);
+            // Edge highlights
+            contentGroup.append('path').datum(balanceData).attr('fill', 'none').attr('stroke', 'rgba(255,255,255,0.3)').attr('stroke-width', 1.5)
+                .attr('d', d3.line().x(d => scale(d.date)).y(d => centerY - balanceScale(d.balance) / 2).curve(smoothCurve));
+            contentGroup.append('path').datum(balanceData).attr('fill', 'none').attr('stroke', 'rgba(0,0,0,0.2)').attr('stroke-width', 1)
+                .attr('d', d3.line().x(d => scale(d.date)).y(d => centerY + balanceScale(d.balance) / 2).curve(smoothCurve));
 
-            // River edge highlights for depth
-            contentGroup.append('path')
-                .datum(balanceData)
-                .attr('fill', 'none')
-                .attr('stroke', 'rgba(255,255,255,0.3)')
-                .attr('stroke-width', 1.5)
-                .attr('d', d3.line()
-                    .x(d => scale(d.date))
-                    .y(d => centerY - balanceScale(d.balance) / 2)
-                    .curve(smoothCurve)
-                );
-
-            contentGroup.append('path')
-                .datum(balanceData)
-                .attr('fill', 'none')
-                .attr('stroke', 'rgba(0,0,0,0.2)')
-                .attr('stroke-width', 1)
-                .attr('d', d3.line()
-                    .x(d => scale(d.date))
-                    .y(d => centerY + balanceScale(d.balance) / 2)
-                    .curve(smoothCurve)
-                );
-
-            // Draw flows - SHORT height, focus on WIDTH for proportion
-            // Flows touch the river and match the thickness change they create
-            const flowHeight = 60; // Fixed short height for all flows
-
+            // Flows
+            const flowHeight = 60;
             let prevBalance = 0;
-            txs.forEach((tx, i) => {
-                const x = scale(tx.date);
-                // Flow width matches the river thickness change this transaction creates
-                const flowWidth = flowScale(tx.usd);
-                const halfWidth = Math.max(flowWidth / 2, 3); // Minimum 3px half-width for visibility
 
-                // Calculate river thickness BEFORE and AFTER this transaction
-                const balanceBefore = prevBalance;
-                if (tx.type === 'in') {
-                    prevBalance += tx.usd;
-                } else {
-                    prevBalance -= tx.usd;
-                }
+            txs.forEach(tx => {
+                const x = scale(tx.date);
+                const flowWidth = flowScale(tx.usd);
+                const halfWidth = Math.max(flowWidth / 2, 3);
+
+                if (tx.type === 'in') prevBalance += tx.usd;
+                else prevBalance -= tx.usd;
                 const balanceAfter = Math.max(0, prevBalance);
                 const riverTopAfter = centerY - balanceScale(balanceAfter) / 2;
                 const riverBottomAfter = centerY + balanceScale(balanceAfter) / 2;
 
                 if (tx.type === 'in') {
-                    // INFLOW: Short flow from above, touching the river top
-                    const endY = riverTopAfter; // Flow ends exactly at river edge
-                    const startY = endY - flowHeight; // Short fixed height
-
-                    // Smooth curved flow using quadratic bezier for organic look
-                    const path = d3.path();
+                    const endY = riverTopAfter;
+                    const startY = endY - flowHeight;
                     const midY = startY + flowHeight * 0.5;
-
-                    // Left edge curves inward then meets river
+                    const path = d3.path();
                     path.moveTo(x - halfWidth * 0.6, startY);
-                    path.quadraticCurveTo(
-                        x - halfWidth * 1.1, midY,
-                        x - halfWidth, endY
-                    );
-
-                    // Bottom edge along river
+                    path.quadraticCurveTo(x - halfWidth * 1.1, midY, x - halfWidth, endY);
                     path.lineTo(x + halfWidth, endY);
-
-                    // Right edge curves back up
-                    path.quadraticCurveTo(
-                        x + halfWidth * 1.1, midY,
-                        x + halfWidth * 0.6, startY
-                    );
-
+                    path.quadraticCurveTo(x + halfWidth * 1.1, midY, x + halfWidth * 0.6, startY);
                     path.closePath();
-
-                    contentGroup.append('path')
-                        .attr('d', path.toString())
-                        .attr('fill', 'url(#inflowGradient)')
-                        .attr('class', 'flow-path')
-                        .attr('opacity', 0.9)
-                        .on('mouseover', (event) => showTooltip(event, tx, prevBalance))
-                        .on('mousemove', (event) => moveTooltip(event))
+                    contentGroup.append('path').attr('d', path.toString()).attr('fill', 'url(#inflowGradient)')
+                        .attr('class', 'flow-path').attr('opacity', 0.9)
+                        .on('mouseover', event => showTooltip(event, tx, prevBalance))
+                        .on('mousemove', event => moveTooltip(event))
                         .on('mouseout', hideTooltip);
-
                 } else {
-                    // OUTFLOW: Short flow going below, starting from river bottom
-                    const startY = riverBottomAfter; // Flow starts exactly at river edge
-                    const endY = startY + flowHeight; // Short fixed height
-
-                    // Smooth curved flow
-                    const path = d3.path();
+                    const startY = riverBottomAfter;
+                    const endY = startY + flowHeight;
                     const midY = startY + flowHeight * 0.5;
-
-                    // Left edge from river, curves outward then down
+                    const path = d3.path();
                     path.moveTo(x - halfWidth, startY);
-                    path.quadraticCurveTo(
-                        x - halfWidth * 1.1, midY,
-                        x - halfWidth * 0.6, endY
-                    );
-
-                    // Bottom edge
+                    path.quadraticCurveTo(x - halfWidth * 1.1, midY, x - halfWidth * 0.6, endY);
                     path.lineTo(x + halfWidth * 0.6, endY);
-
-                    // Right edge curves back to river
-                    path.quadraticCurveTo(
-                        x + halfWidth * 1.1, midY,
-                        x + halfWidth, startY
-                    );
-
+                    path.quadraticCurveTo(x + halfWidth * 1.1, midY, x + halfWidth, startY);
                     path.closePath();
-
-                    contentGroup.append('path')
-                        .attr('d', path.toString())
-                        .attr('fill', 'url(#outflowGradient)')
-                        .attr('class', 'flow-path')
-                        .attr('opacity', 0.9)
-                        .on('mouseover', (event) => showTooltip(event, tx, prevBalance))
-                        .on('mousemove', (event) => moveTooltip(event))
+                    contentGroup.append('path').attr('d', path.toString()).attr('fill', 'url(#outflowGradient)')
+                        .attr('class', 'flow-path').attr('opacity', 0.9)
+                        .on('mouseover', event => showTooltip(event, tx, prevBalance))
+                        .on('mousemove', event => moveTooltip(event))
                         .on('mouseout', hideTooltip);
                 }
             });
 
-            // Add invisible overlay for river hover - shows balance at any point
-            const riverHoverGroup = contentGroup.append('g').attr('class', 'river-hover-group');
-
-            // Create invisible wide rectangle over the entire river area for hover detection
-            riverHoverGroup.append('rect')
-                .attr('class', 'river-hover-area')
-                .attr('x', scale.range()[0] - 50)
-                .attr('y', centerY - 100)
-                .attr('width', scale.range()[1] - scale.range()[0] + 100)
-                .attr('height', 200)
+            // River hover
+            const riverHoverGroup = contentGroup.append('g');
+            riverHoverGroup.append('rect').attr('class', 'river-hover-area')
+                .attr('x', scale.range()[0] - 50).attr('y', centerY - 100)
+                .attr('width', scale.range()[1] - scale.range()[0] + 100).attr('height', 200)
                 .attr('fill', 'transparent')
                 .on('mousemove', function(event) {
                     const [mouseX] = d3.pointer(event);
                     const hoveredDate = scale.invert(mouseX);
-
-                    // Find the balance at this point in time
                     let balanceAtPoint = 0;
-                    let lastTxBeforeHover = null;
-
                     for (let i = 0; i < txs.length; i++) {
                         if (txs[i].date <= hoveredDate) {
-                            if (txs[i].type === 'in') {
-                                balanceAtPoint += txs[i].usd;
-                            } else {
-                                balanceAtPoint -= txs[i].usd;
-                            }
-                            lastTxBeforeHover = txs[i];
-                        } else {
-                            break;
-                        }
+                            if (txs[i].type === 'in') balanceAtPoint += txs[i].usd;
+                            else balanceAtPoint -= txs[i].usd;
+                        } else break;
                     }
-
-                    // Show balance indicator line
-                    riverHoverGroup.selectAll('.balance-line').remove();
-                    riverHoverGroup.selectAll('.balance-dot').remove();
-
-                    const riverThicknessAtPoint = balanceScale(Math.max(0, balanceAtPoint));
-
-                    // Vertical indicator line
-                    riverHoverGroup.append('line')
-                        .attr('class', 'balance-line balance-indicator')
-                        .attr('x1', mouseX)
-                        .attr('x2', mouseX)
-                        .attr('y1', centerY - riverThicknessAtPoint / 2 - 5)
-                        .attr('y2', centerY + riverThicknessAtPoint / 2 + 5)
-                        .attr('stroke', '#fff')
-                        .attr('stroke-width', 2)
-                        .attr('stroke-dasharray', '4,2')
-                        .attr('opacity', 0.8);
-
-                    // Dot at center
-                    riverHoverGroup.append('circle')
-                        .attr('class', 'balance-dot balance-indicator')
-                        .attr('cx', mouseX)
-                        .attr('cy', centerY)
-                        .attr('r', 5)
-                        .attr('fill', '#00d4ff')
-                        .attr('stroke', '#fff')
-                        .attr('stroke-width', 2);
-
-                    // Show tooltip with balance
+                    riverHoverGroup.selectAll('.balance-line,.balance-dot').remove();
+                    const t = balanceScale(Math.max(0, balanceAtPoint));
+                    riverHoverGroup.append('line').attr('class', 'balance-line balance-indicator')
+                        .attr('x1', mouseX).attr('x2', mouseX).attr('y1', centerY - t / 2 - 5).attr('y2', centerY + t / 2 + 5)
+                        .attr('stroke', '#fff').attr('stroke-width', 2).attr('stroke-dasharray', '4,2').attr('opacity', 0.8);
+                    riverHoverGroup.append('circle').attr('class', 'balance-dot balance-indicator')
+                        .attr('cx', mouseX).attr('cy', centerY).attr('r', 5)
+                        .attr('fill', '#00d4ff').attr('stroke', '#fff').attr('stroke-width', 2);
                     showRiverTooltip(event, hoveredDate, balanceAtPoint);
                 })
                 .on('mouseout', function() {
-                    riverHoverGroup.selectAll('.balance-line').remove();
-                    riverHoverGroup.selectAll('.balance-dot').remove();
+                    riverHoverGroup.selectAll('.balance-line,.balance-dot').remove();
                     hideTooltip();
                 });
         }
 
         function showTooltip(event, tx, balanceAfter) {
             const tooltip = document.getElementById('tooltip');
-            const chainBadge = `<span class="chain-badge ${tx.chain}">${tx.chain.charAt(0).toUpperCase() + tx.chain.slice(1)}</span>`;
-
+            const chainClass = tx.chain || '';
             tooltip.innerHTML = `
                 <div class="date">${tx.date.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                ${chainBadge}
+                <span class="chain-badge ${chainClass}">${chainClass.charAt(0).toUpperCase() + chainClass.slice(1)}</span>
                 <span class="amount ${tx.type === 'in' ? 'inflow' : 'outflow'}">
-                    ${tx.type === 'in' ? '+' : '-'}$${tx.usd.toLocaleString()}
+                    ${tx.type === 'in' ? '+' : '-'}$${Math.round(tx.usd).toLocaleString()}
                 </span>
-                <div class="token">${tx.amount.toLocaleString()} ${tx.token}</div>
+                <div class="token">${tx.amount.toLocaleString(undefined, {maximumFractionDigits: 4})} ${tx.token}</div>
                 <div class="address">${tx.type === 'in' ? 'From: ' + (tx.from || 'Unknown') : 'To: ' + (tx.to || 'Unknown')}</div>
                 <div class="balance-info">Balance after: $${Math.round(Math.max(0, balanceAfter)).toLocaleString()}</div>
             `;
-
             tooltip.style.display = 'block';
             moveTooltip(event);
         }
 
         function moveTooltip(event) {
             const tooltip = document.getElementById('tooltip');
-            const tooltipWidth = tooltip.offsetWidth;
-            const tooltipHeight = tooltip.offsetHeight;
-
-            let x = event.pageX + 15;
-            let y = event.pageY - 10;
-
-            // Keep tooltip on screen
-            if (x + tooltipWidth > window.innerWidth - 20) {
-                x = event.pageX - tooltipWidth - 15;
-            }
-            if (y + tooltipHeight > window.innerHeight - 20) {
-                y = event.pageY - tooltipHeight - 10;
-            }
-
+            let x = event.pageX + 15, y = event.pageY - 10;
+            if (x + tooltip.offsetWidth > window.innerWidth - 20) x = event.pageX - tooltip.offsetWidth - 15;
+            if (y + tooltip.offsetHeight > window.innerHeight - 20) y = event.pageY - tooltip.offsetHeight - 10;
             tooltip.style.left = x + 'px';
             tooltip.style.top = y + 'px';
         }
 
-        function hideTooltip() {
-            document.getElementById('tooltip').style.display = 'none';
-        }
+        function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
 
         function showRiverTooltip(event, date, balance) {
             const tooltip = document.getElementById('tooltip');
-
             tooltip.innerHTML = `
                 <div class="date">${date.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                <span class="amount balance" style="color: #00d4ff;">
-                    💰 $${Math.round(Math.max(0, balance)).toLocaleString()}
-                </span>
-                <div style="margin-top: 8px; font-size: 0.8rem; color: #888;">
-                    Wallet balance at this point in time
-                </div>
+                <span class="amount" style="color: #00d4ff;">$${Math.round(Math.max(0, balance)).toLocaleString()}</span>
+                <div style="margin-top: 8px; font-size: 0.8rem; color: #888;">Wallet balance at this point in time</div>
             `;
-
             tooltip.style.display = 'block';
             moveTooltip(event);
         }
 
-        // Event listeners
-        document.getElementById('chain-filter').addEventListener('change', (e) => {
-            currentFilter.chain = e.target.value;
-            currentZoomTransform = d3.zoomIdentity; // Reset zoom on filter change
-            drawTimeline();
-        });
+        // Listen for wallet changes
+        window.addEventListener('wallet-changed', e => loadWallet(e.detail.address));
 
-        document.getElementById('token-filter').addEventListener('change', (e) => {
-            currentFilter.token = e.target.value;
-            currentZoomTransform = d3.zoomIdentity; // Reset zoom on filter change
-            drawTimeline();
-        });
-
-        document.getElementById('reset-zoom').addEventListener('click', () => {
-            currentZoomTransform = d3.zoomIdentity;
-            if (svgElement && window.currentZoom) {
-                svgElement.transition().duration(500).call(window.currentZoom.transform, d3.zoomIdentity);
-            }
-        });
-
-        // Initial draw
-        drawTimeline();
-
-        // Debounced resize handler
+        // Resize handler
         let resizeTimeout;
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                currentZoomTransform = d3.zoomIdentity;
-                drawTimeline();
-            }, 250);
+            resizeTimeout = setTimeout(() => { currentZoomTransform = d3.zoomIdentity; drawTimeline(); }, 250);
         });
+
+        // Auto-load from URL
+        const { address } = Router.getParams();
+        if (address && Router.isValidAddress(address)) loadWallet(address);
     </script>
 </body>
 </html>

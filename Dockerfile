@@ -2,6 +2,7 @@ FROM nginx:alpine
 
 # Copy static files
 COPY *.html /usr/share/nginx/html/
+COPY js/ /usr/share/nginx/html/js/
 
 # Custom nginx config for SPA-like behavior
 RUN echo 'server { \

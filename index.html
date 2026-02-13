@@ -3,165 +3,806 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wallet Visualizations | wallets.bondingcurve.tech</title>
+    <title>rWallet.online | Democratic Wallet Management for Communities</title>
+    <meta name="description" content="Democratic wallet management for communities. Interactive visualizations for group treasury management — balance rivers, Sankey flow diagrams, and multi-chain analysis from live on-chain data.">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
-            color: #e0e0e0;
-            min-height: 100vh;
-            padding: 40px 20px;
+
+        :root {
+            --primary: #00d4ff;
+            --primary-dim: rgba(0, 212, 255, 0.15);
+            --accent: #7c3aed;
+            --accent-dim: rgba(124, 58, 237, 0.15);
+            --bg: #0f0f1a;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #e0e0e0;
+            --text-dim: #888;
+            --text-faint: #555;
+            --green: #34d399;
+            --blue: #3b82f6;
+            --purple: #a78bfa;
+            --orange: #fb923c;
+            --red: #f87171;
         }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ─── Hero ─────────────────────────────────────────── */
+
+        .hero {
+            position: relative;
+            text-align: center;
+            padding: 80px 24px 60px;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 600px 400px at 50% 20%, var(--primary-dim), transparent),
+                        radial-gradient(ellipse 400px 300px at 80% 80%, var(--accent-dim), transparent);
+            z-index: 0;
+        }
+        .hero > * { position: relative; z-index: 1; }
+
+        .badge {
+            display: inline-block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            padding: 5px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 212, 255, 0.25);
+            background: var(--primary-dim);
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 18px;
+            color: #fff;
+        }
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-sub {
+            font-size: 1.15rem;
+            color: var(--text-dim);
+            max-width: 620px;
+            margin: 0 auto 36px;
+            line-height: 1.65;
+        }
+        .hero-sub strong { color: var(--text); }
+
+        /* ─── Wallet Input ─────────────────────────────────── */
+
+        .wallet-input-section {
+            max-width: 680px;
             margin: 0 auto;
         }
-        h1 {
-            text-align: center;
-            margin-bottom: 10px;
-            color: #00d4ff;
-            font-size: 2.5rem;
+
+        .wallet-input-group {
+            display: flex;
+            gap: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid var(--border);
+            background: rgba(255, 255, 255, 0.04);
+            transition: border-color 0.3s;
         }
-        .subtitle {
-            text-align: center;
-            color: #888;
-            margin-bottom: 50px;
-            font-size: 1.1rem;
+        .wallet-input-group:focus-within {
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.08);
         }
-        .wallet-address {
-            text-align: center;
-            font-family: monospace;
-            color: #666;
-            margin-bottom: 40px;
-            font-size: 0.9rem;
+
+        .wallet-input-group input {
+            flex: 1;
+            padding: 16px 20px;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.02em;
         }
-        .wallet-address a {
-            color: #00d4ff;
+        .wallet-input-group input::placeholder {
+            color: var(--text-faint);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            letter-spacing: 0;
+        }
+
+        .wallet-input-group button {
+            padding: 16px 28px;
+            background: linear-gradient(135deg, var(--primary), #0099cc);
+            border: none;
+            color: #fff;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+        }
+        .wallet-input-group button:hover {
+            opacity: 0.85;
+        }
+
+        .input-hint {
+            margin-top: 12px;
+            font-size: 0.82rem;
+            color: var(--text-faint);
+            text-align: center;
+        }
+        .input-hint a {
+            color: var(--primary);
             text-decoration: none;
+            cursor: pointer;
         }
-        .wallet-address a:hover {
+        .input-hint a:hover {
             text-decoration: underline;
         }
-        .cards {
+
+        .input-error {
+            color: var(--red);
+            font-size: 0.85rem;
+            margin-top: 8px;
+            text-align: center;
+            display: none;
+        }
+
+        /* ─── Section headings ─────────────────────────────── */
+
+        section {
+            padding: 60px 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .section-header h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        .section-header p {
+            color: var(--text-dim);
+            font-size: 1.05rem;
+            max-width: 560px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* ─── ELI5 Cards ──────────────────────────────────── */
+
+        .eli5-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .eli5-card {
+            padding: 28px;
+            border-radius: 14px;
+            border: 2px solid;
+        }
+        .eli5-card.multi-chain {
+            border-color: rgba(59, 130, 246, 0.35);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.02));
+        }
+        .eli5-card.transparent {
+            border-color: rgba(52, 211, 153, 0.35);
+            background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), rgba(52, 211, 153, 0.02));
+        }
+        .eli5-card.visual {
+            border-color: rgba(167, 139, 250, 0.35);
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.08), rgba(167, 139, 250, 0.02));
+        }
+
+        .eli5-card .icon-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .eli5-card .icon-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .eli5-card.multi-chain .icon-circle { background: var(--blue); }
+        .eli5-card.transparent .icon-circle { background: var(--green); }
+        .eli5-card.visual .icon-circle { background: var(--purple); }
+
+        .eli5-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        .eli5-card.multi-chain h3 { color: var(--blue); }
+        .eli5-card.transparent h3 { color: var(--green); }
+        .eli5-card.visual h3 { color: var(--purple); }
+
+        .eli5-card p {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+        .eli5-card p strong {
+            display: block;
+            margin-top: 8px;
+            color: var(--text);
+        }
+
+        /* ─── Visualization Cards ─────────────────────────── */
+
+        .viz-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 24px;
         }
-        .card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.1);
+
+        .viz-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            padding: 30px;
+            padding: 32px;
             transition: all 0.3s ease;
             text-decoration: none;
             color: inherit;
-            display: block;
+            display: flex;
+            flex-direction: column;
         }
-        .card:hover {
-            background: rgba(255,255,255,0.06);
+        .viz-card:hover {
+            background: rgba(255, 255, 255, 0.06);
             border-color: rgba(0, 212, 255, 0.3);
             transform: translateY(-4px);
-            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.1);
+            box-shadow: 0 12px 40px rgba(0, 212, 255, 0.08);
         }
-        .card h2 {
-            color: #00d4ff;
-            margin-bottom: 12px;
-            font-size: 1.4rem;
-        }
-        .card p {
-            color: #888;
-            line-height: 1.6;
-            font-size: 0.95rem;
-        }
-        .card .icon {
+
+        .viz-card .viz-icon {
             font-size: 2.5rem;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
-        .card .features {
+        .viz-card h3 {
+            color: var(--primary);
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+        .viz-card p {
+            color: var(--text-dim);
+            line-height: 1.6;
+            font-size: 0.92rem;
+            flex: 1;
+        }
+        .viz-card .feature-list {
             margin-top: 16px;
             padding-top: 16px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        .card .features li {
-            color: #666;
-            font-size: 0.85rem;
-            margin-bottom: 6px;
+            border-top: 1px solid var(--border);
             list-style: none;
-            padding-left: 20px;
+        }
+        .viz-card .feature-list li {
+            color: var(--text-faint);
+            font-size: 0.83rem;
+            margin-bottom: 5px;
+            padding-left: 18px;
             position: relative;
         }
-        .card .features li::before {
-            content: "→";
+        .viz-card .feature-list li::before {
+            content: "\2192";
             position: absolute;
             left: 0;
-            color: #00d4ff;
+            color: var(--primary);
         }
+
+        /* ─── Supported Chains ─────────────────────────────── */
+
+        .chains-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 16px;
+        }
+        .chain-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: 999px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: var(--text-dim);
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .chain-pill:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .chain-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ─── Demo CTA ─────────────────────────────────────── */
+
+        .demo-section {
+            position: relative;
+            border-radius: 20px;
+            border: 2px solid rgba(0, 212, 255, 0.2);
+            background: linear-gradient(135deg, var(--primary-dim), var(--accent-dim));
+            padding: 60px 40px;
+            text-align: center;
+            overflow: hidden;
+        }
+        .demo-section::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 200px;
+            height: 200px;
+            background: var(--primary-dim);
+            border-radius: 50%;
+            filter: blur(60px);
+        }
+        .demo-section::after {
+            content: '';
+            position: absolute;
+            bottom: -60px;
+            left: -60px;
+            width: 200px;
+            height: 200px;
+            background: var(--accent-dim);
+            border-radius: 50%;
+            filter: blur(60px);
+        }
+        .demo-section > * { position: relative; z-index: 1; }
+        .demo-section h2 {
+            font-size: 1.6rem;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+        .demo-section p {
+            color: var(--text-dim);
+            font-size: 1.05rem;
+            max-width: 500px;
+            margin: 0 auto 28px;
+            line-height: 1.6;
+        }
+        .demo-section .demo-address {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: var(--text-faint);
+            margin-top: 16px;
+        }
+
+        .btn-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 14px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #0099cc);
+            color: #fff;
+        }
+        .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
+        .btn-outline {
+            background: transparent;
+            border: 1.5px solid rgba(0, 212, 255, 0.3);
+            color: var(--primary);
+        }
+        .btn-outline:hover {
+            background: var(--primary-dim);
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+
+        /* ─── How It Works ─────────────────────────────────── */
+
+        .steps-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .step {
+            text-align: center;
+            padding: 24px;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px;
+        }
+        .step h3 {
+            font-size: 1.05rem;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        .step p {
+            font-size: 0.88rem;
+            color: var(--text-dim);
+            line-height: 1.55;
+        }
+
+        /* ─── Footer ──────────────────────────────────────── */
+
         footer {
             text-align: center;
-            margin-top: 60px;
-            color: #555;
-            font-size: 0.85rem;
+            padding: 40px 24px;
+            color: var(--text-faint);
+            font-size: 0.82rem;
+            border-top: 1px solid var(--border);
         }
         footer a {
-            color: #00d4ff;
+            color: var(--primary);
             text-decoration: none;
         }
-        footer a:hover {
-            text-decoration: underline;
+        footer a:hover { text-decoration: underline; }
+        footer .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        footer .footer-sep {
+            color: var(--border);
+        }
+
+        /* ─── Responsive ──────────────────────────────────── */
+
+        @media (max-width: 640px) {
+            .hero { padding: 50px 16px 40px; }
+            .wallet-input-group { flex-direction: column; }
+            .wallet-input-group input { text-align: center; }
+            .wallet-input-group button { padding: 14px; }
+            .demo-section { padding: 40px 20px; }
+            .btn-row { flex-direction: column; align-items: center; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Wallet Visualizations</h1>
-        <p class="subtitle">Interactive multi-chain Safe wallet analytics</p>
 
-        <p class="wallet-address">
-            Analyzing: <a href="https://app.safe.global/transactions/history?safe=gno:0x29567BdBcC92aCF37AC6B56B69180857bB69f7D1" target="_blank">0x29567BdBcC92aCF37AC6B56B69180857bB69f7D1</a>
+    <!-- Hero -->
+    <section class="hero">
+        <div class="badge">Part of the rSpace Ecosystem</div>
+        <h1>Democratic Wallet<br><span>Management for Communities</span></h1>
+        <p class="hero-sub">
+            Interactive visualizations for <strong>group treasury management</strong>.
+            Explore any Safe multi-sig wallet with balance rivers, Sankey flow diagrams,
+            and multi-chain analysis &mdash; all from <strong>live on-chain data</strong>.
         </p>
 
-        <div class="cards">
-            <a href="wallet-timeline-visualization.html" class="card">
-                <div class="icon">🌊</div>
-                <h2>Balance River Timeline</h2>
-                <p>Watch funds flow through the wallet over time. The river thickness represents balance, with inflows (green→blue) and outflows (blue→red) showing money movement.</p>
-                <ul class="features">
-                    <li>Scroll to zoom into time periods</li>
-                    <li>Horizontal scroll/drag to pan</li>
-                    <li>Hover river for balance at any point</li>
-                    <li>Flow width = transaction size</li>
-                </ul>
-            </a>
-
-            <a href="wallet-multichain-visualization.html" class="card">
-                <div class="icon">🔗</div>
-                <h2>Multi-Chain Flow Analysis</h2>
-                <p>Sankey diagram showing fund flows across all chains. Filter by chain to see activity on Gnosis, Ethereum, Avalanche, Optimism, and Arbitrum.</p>
-                <ul class="features">
-                    <li>Interactive chain filtering</li>
-                    <li>Flow diagram with addresses</li>
-                    <li>Transaction tables per chain</li>
-                    <li>Stats breakdown by direction</li>
-                </ul>
-            </a>
-
-            <a href="wallet-visualization.html" class="card">
-                <div class="icon">📊</div>
-                <h2>Gnosis Chain Overview</h2>
-                <p>Original single-chain Sankey visualization focused on Gnosis chain transactions including WXDAI, TEC tokens, and other activity.</p>
-                <ul class="features">
-                    <li>Simple Sankey flow diagram</li>
-                    <li>Address-level breakdown</li>
-                    <li>Gnosis chain focused</li>
-                    <li>Transaction details on hover</li>
-                </ul>
-            </a>
+        <!-- Wallet Input -->
+        <div class="wallet-input-section">
+            <div class="wallet-input-group">
+                <input type="text" id="wallet-input" placeholder="Enter a Safe wallet address (0x...)"
+                       spellcheck="false" autocomplete="off" />
+                <button id="explore-btn">Explore Wallet</button>
+            </div>
+            <p class="input-error" id="input-error">Please enter a valid Ethereum address (0x followed by 40 hex characters).</p>
+            <p class="input-hint">
+                Or try the demo:
+                <a id="demo-link" href="#">TEC Commons Fund on Gnosis</a>
+            </p>
         </div>
+    </section>
 
-        <footer>
-            <p>Built with D3.js | Data from <a href="https://safe.global" target="_blank">Safe Global API</a></p>
-        </footer>
+    <div class="container">
+
+        <!-- ELI5 -->
+        <section>
+            <div class="section-header">
+                <div class="badge" style="border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: var(--text-dim);">ELI5</div>
+                <h2>rWallet in 30 Seconds</h2>
+                <p>
+                    A <strong style="color: var(--blue);">multi-chain</strong>,
+                    <strong style="color: var(--green);">transparent</strong>,
+                    <strong style="color: var(--purple);">visual</strong>
+                    wallet explorer built for community treasuries.
+                </p>
+            </div>
+
+            <div class="eli5-grid">
+                <div class="eli5-card multi-chain">
+                    <div class="icon-row">
+                        <div class="icon-circle">&#x1f310;</div>
+                        <h3>Multi-Chain</h3>
+                    </div>
+                    <p>
+                        Automatically detects your Safe across Ethereum, Gnosis, Polygon, Base, Optimism, Arbitrum, and Avalanche.
+                        <strong>See all activity in one place.</strong>
+                    </p>
+                </div>
+
+                <div class="eli5-card transparent">
+                    <div class="icon-row">
+                        <div class="icon-circle">&#x1f50d;</div>
+                        <h3>Transparent</h3>
+                    </div>
+                    <p>
+                        Real-time data fetched directly from the Safe Transaction Service API. No intermediaries, nothing hidden.
+                        <strong>Verify every transaction yourself.</strong>
+                    </p>
+                </div>
+
+                <div class="eli5-card visual">
+                    <div class="icon-row">
+                        <div class="icon-circle">&#x1f4ca;</div>
+                        <h3>Visual</h3>
+                    </div>
+                    <p>
+                        Interactive D3.js visualizations: Balance River timelines, Sankey flow diagrams, and cross-chain analysis.
+                        <strong>Understand flows at a glance.</strong>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section>
+            <div class="section-header">
+                <div class="badge">How It Works</div>
+                <h2>From Address to Insight</h2>
+            </div>
+
+            <div class="steps-row">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Enter Address</h3>
+                    <p>Paste any Safe multi-sig wallet address. rWallet checks all supported chains in parallel.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Fetch Live Data</h3>
+                    <p>Transactions, balances, and transfers are pulled directly from the Safe Global API &mdash; no backend needed.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Visualize</h3>
+                    <p>Choose from three interactive visualization modes to understand fund flows, balances over time, and cross-chain activity.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h3>Share &amp; Verify</h3>
+                    <p>Every view has a shareable deep-link. Anyone can verify the data independently &mdash; full transparency.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Visualization Types -->
+        <section>
+            <div class="section-header">
+                <h2>Three Ways to Explore</h2>
+                <p>Each visualization reveals different aspects of your wallet's activity.</p>
+            </div>
+
+            <div class="viz-grid">
+                <a href="wallet-timeline-visualization.html" class="viz-card" id="viz-timeline">
+                    <div class="viz-icon">&#x1f30a;</div>
+                    <h3>Balance River Timeline</h3>
+                    <p>Watch funds flow through the wallet over time. The river thickness represents balance, with inflows and outflows color-coded for instant comprehension.</p>
+                    <ul class="feature-list">
+                        <li>Scroll to zoom into time periods</li>
+                        <li>Drag or shift-scroll to pan through history</li>
+                        <li>Hover the river for balance at any point</li>
+                        <li>Flow width proportional to transaction size</li>
+                    </ul>
+                </a>
+
+                <a href="wallet-multichain-visualization.html" class="viz-card" id="viz-multichain">
+                    <div class="viz-icon">&#x1f517;</div>
+                    <h3>Multi-Chain Flow Analysis</h3>
+                    <p>See fund flows across all detected chains in one view. Filter by chain to drill into Gnosis, Ethereum, Base, or any other active network.</p>
+                    <ul class="feature-list">
+                        <li>Auto-detects chains with Safe deployments</li>
+                        <li>Interactive chain filtering</li>
+                        <li>Flow diagram with address-level detail</li>
+                        <li>Stats breakdown by direction</li>
+                    </ul>
+                </a>
+
+                <a href="wallet-visualization.html" class="viz-card" id="viz-sankey">
+                    <div class="viz-icon">&#x1f4ca;</div>
+                    <h3>Single-Chain Sankey</h3>
+                    <p>Classic Sankey diagram showing the complete flow of funds on a single chain. Nodes represent addresses, links represent value transferred.</p>
+                    <ul class="feature-list">
+                        <li>Per-chain Sankey flow diagram</li>
+                        <li>Address-level fund flow breakdown</li>
+                        <li>Chain selector for multi-chain wallets</li>
+                        <li>Transaction details on hover</li>
+                    </ul>
+                </a>
+            </div>
+        </section>
+
+        <!-- Supported Chains -->
+        <section>
+            <div class="section-header">
+                <h2>Supported Chains</h2>
+                <p>rWallet auto-detects Safe deployments across these networks.</p>
+            </div>
+
+            <div class="chains-row">
+                <div class="chain-pill">
+                    <span class="chain-dot" style="background: #627eea;"></span>
+                    Ethereum
+                </div>
+                <div class="chain-pill">
+                    <span class="chain-dot" style="background: #ff0420;"></span>
+                    Optimism
+                </div>
+                <div class="chain-pill">
+                    <span class="chain-dot" style="background: #04795b;"></span>
+                    Gnosis
+                </div>
+                <div class="chain-pill">
+                    <span class="chain-dot" style="background: #8247e5;"></span>
+                    Polygon
+                </div>
+                <div class="chain-pill">
+                    <span class="chain-dot" style="background: #0052ff;"></span>
+                    Base
+                </div>
+                <div class="chain-pill">
+                    <span class="chain-dot" style="background: #28a0f0;"></span>
+                    Arbitrum
+                </div>
+                <div class="chain-pill">
+                    <span class="chain-dot" style="background: #e84142;"></span>
+                    Avalanche
+                </div>
+            </div>
+        </section>
+
+        <!-- Demo CTA -->
+        <section>
+            <div class="demo-section">
+                <div class="badge">Live Demo</div>
+                <h2>See It in Action</h2>
+                <p>
+                    Explore the TEC Commons Fund &mdash; a real multi-chain Safe wallet
+                    managing community funds on Gnosis and beyond.
+                </p>
+                <div class="btn-row">
+                    <a href="wallet-timeline-visualization.html?address=0x29567BdBcC92aCF37AC6B56B69180857bB69f7D1" class="btn btn-primary">
+                        &#x1f30a;&nbsp; Balance River
+                    </a>
+                    <a href="wallet-multichain-visualization.html?address=0x29567BdBcC92aCF37AC6B56B69180857bB69f7D1" class="btn btn-outline">
+                        &#x1f517;&nbsp; Multi-Chain Flow
+                    </a>
+                    <a href="wallet-visualization.html?address=0x29567BdBcC92aCF37AC6B56B69180857bB69f7D1&chainId=100" class="btn btn-outline">
+                        &#x1f4ca;&nbsp; Gnosis Sankey
+                    </a>
+                </div>
+                <p class="demo-address">0x29567BdBcC92aCF37AC6B56B69180857bB69f7D1</p>
+            </div>
+        </section>
+
     </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <span>Built with <a href="https://d3js.org" target="_blank" rel="noopener">D3.js</a></span>
+            <span class="footer-sep">|</span>
+            <span>Data from <a href="https://safe.global" target="_blank" rel="noopener">Safe Global API</a></span>
+            <span class="footer-sep">|</span>
+            <span>Part of the <a href="https://rspace.online" target="_blank" rel="noopener">rSpace Ecosystem</a></span>
+        </div>
+        <p>No backend. No tracking. All data fetched client-side from public APIs.</p>
+    </footer>
+
+    <script>
+        // ─── Wallet Input Logic ────────────────────────────────────
+        const DEMO_ADDRESS = '0x29567BdBcC92aCF37AC6B56B69180857bB69f7D1';
+
+        const input = document.getElementById('wallet-input');
+        const btn = document.getElementById('explore-btn');
+        const error = document.getElementById('input-error');
+        const demoLink = document.getElementById('demo-link');
+
+        function isValidAddress(addr) {
+            return /^0x[a-fA-F0-9]{40}$/.test(addr);
+        }
+
+        function navigateToWallet(address) {
+            // Default to multichain view for the best first experience
+            window.location.href = `wallet-multichain-visualization.html?address=${address}`;
+        }
+
+        function tryExplore() {
+            const addr = input.value.trim();
+            if (!isValidAddress(addr)) {
+                error.style.display = 'block';
+                input.style.borderColor = '#f87171';
+                setTimeout(() => {
+                    error.style.display = 'none';
+                    input.style.borderColor = '';
+                }, 3000);
+                return;
+            }
+            navigateToWallet(addr);
+        }
+
+        btn.addEventListener('click', tryExplore);
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') tryExplore(); });
+
+        // Demo link
+        demoLink.addEventListener('click', e => {
+            e.preventDefault();
+            navigateToWallet(DEMO_ADDRESS);
+        });
+
+        // If viz cards don't have an address param yet, add the demo address on click
+        // (only if user hasn't entered their own)
+        document.querySelectorAll('.viz-card').forEach(card => {
+            card.addEventListener('click', e => {
+                const addr = input.value.trim();
+                if (isValidAddress(addr)) {
+                    e.preventDefault();
+                    const url = new URL(card.href, window.location.origin);
+                    url.searchParams.set('address', addr);
+                    window.location.href = url.toString();
+                }
+                // Otherwise, follow the link as-is (no address = page shows its own input)
+            });
+        });
+    </script>
+
 </body>
 </html>
