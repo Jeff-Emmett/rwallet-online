@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
     <script src="js/safe-api.js?v=4"></script>
     <script src="js/data-transform.js?v=2"></script>
-    <script src="js/router.js?v=2"></script>
+    <script src="js/router.js?v=5"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -80,7 +80,18 @@
         #sankey-chart {
             background: rgba(255,255,255,0.02); border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px;
+            overflow: hidden; cursor: grab;
         }
+        #sankey-chart svg { display: block; }
+        .zoom-controls {
+            display: flex; justify-content: center; gap: 16px; align-items: center;
+            margin-bottom: 12px; font-size: 0.8rem; color: #666;
+        }
+        .zoom-controls button {
+            padding: 6px 14px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.05); color: #ccc; cursor: pointer; font-size: 0.8rem;
+        }
+        .zoom-controls button:hover { background: rgba(255,255,255,0.1); }
         .node rect { stroke: #333; stroke-width: 1px; }
         .node text { font-size: 11px; fill: #e0e0e0; }
         .link { fill: none; stroke-opacity: 0.4; }
@@ -307,6 +318,10 @@
                     <div class="legend-item"><div class="legend-color" style="background: #f87171"></div> Outflow</div>
                 </div>
 
+                <div class="zoom-controls">
+                    <span>Scroll to zoom &bull; Drag to pan</span>
+                    <button id="reset-sankey-zoom">Reset View</button>
+                </div>
                 <div id="sankey-chart"></div>
 
                 <div class="tables-grid">
@@ -358,6 +373,8 @@
             drawSankey(sankeyData, chainId);
         }
 
+        let sankeyZoom = null;
+
         function drawSankey(data, chainId) {
             const container = document.getElementById('sankey-chart');
             container.innerHTML = '';
@@ -368,9 +385,13 @@
 
             const svg = d3.select('#sankey-chart')
                 .append('svg')
-                .attr('width', width)
+                .attr('width', '100%')
                 .attr('height', height)
-                .attr('viewBox', `0 0 ${width} ${height}`);
+                .attr('viewBox', `0 0 ${width} ${height}`)
+                .style('cursor', 'grab');
+
+            // Zoom group wraps all content
+            const zoomGroup = svg.append('g');
 
             const sankey = d3.sankey()
                 .nodeWidth(20)
@@ -383,7 +404,7 @@
             });
 
             // Links
-            svg.append('g')
+            zoomGroup.append('g')
                 .selectAll('path')
                 .data(links)
                 .join('path')
@@ -398,7 +419,7 @@
                 .text(d => `${d.source.name} → ${d.target.name}\n${d.value.toLocaleString()} ${d.token}`);
 
             // Nodes
-            const node = svg.append('g')
+            const node = zoomGroup.append('g')
                 .selectAll('g')
                 .data(nodes)
                 .join('g');
@@ -420,6 +441,25 @@
                 .style('font-family', 'monospace')
                 .style('font-size', d => d.type === 'wallet' ? '14px' : '11px')
                 .style('font-weight', d => d.type === 'wallet' ? 'bold' : 'normal');
+
+            // Zoom behavior
+            sankeyZoom = d3.zoom()
+                .scaleExtent([0.3, 5])
+                .on('zoom', (event) => {
+                    zoomGroup.attr('transform', event.transform);
+                })
+                .on('start', () => svg.style('cursor', 'grabbing'))
+                .on('end', () => svg.style('cursor', 'grab'));
+
+            svg.call(sankeyZoom);
+
+            // Reset zoom button
+            const resetBtn = document.getElementById('reset-sankey-zoom');
+            if (resetBtn) {
+                resetBtn.onclick = () => {
+                    svg.transition().duration(500).call(sankeyZoom.transform, d3.zoomIdentity);
+                };
+            }
         }
 
         // Listen for wallet changes

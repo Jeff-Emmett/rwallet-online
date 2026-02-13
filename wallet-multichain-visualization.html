@@ -7,7 +7,7 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="js/safe-api.js?v=4"></script>
     <script src="js/data-transform.js?v=2"></script>
-    <script src="js/router.js?v=2"></script>
+    <script src="js/router.js?v=5"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -66,8 +66,16 @@
 
         /* Flow */
         .flow-section { background: rgba(255,255,255,0.02); border-radius: 16px; padding: 24px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.1); }
-        .flow-section h2 { margin-bottom: 20px; font-size: 1.2rem; color: #00d4ff; }
-        #flow-chart { width: 100%; min-height: 400px; }
+        .flow-section h2 { margin-bottom: 12px; font-size: 1.2rem; color: #00d4ff; }
+        #flow-chart { width: 100%; min-height: 400px; overflow: hidden; cursor: grab; }
+        #flow-chart svg { display: block; }
+        .zoom-hint { text-align: center; font-size: 0.8rem; color: #555; margin-bottom: 12px; }
+        .zoom-hint button {
+            padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.05); color: #ccc; cursor: pointer; font-size: 0.8rem;
+            margin-left: 12px;
+        }
+        .zoom-hint button:hover { background: rgba(255,255,255,0.1); }
 
         /* Tables */
         .tables-section { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 30px; }
@@ -194,6 +202,7 @@
 
                 <div class="flow-section">
                     <h2>Transaction Flow Diagram</h2>
+                    <div class="zoom-hint">Scroll to zoom &bull; Drag to pan <button id="reset-flow-zoom">Reset View</button></div>
                     <div id="flow-chart"></div>
                 </div>
 
@@ -287,6 +296,9 @@
             document.getElementById('outflow-count').textContent = filteredOut.length;
         }
 
+        let flowZoom = null;
+        let flowSvg = null;
+
         function drawFlowChart(chain) {
             const container = document.getElementById('flow-chart');
             if (!container) return;
@@ -302,7 +314,12 @@
             const h = 400;
 
             const svg = d3.select('#flow-chart').append('svg')
-                .attr('width', '100%').attr('height', h).attr('viewBox', `0 0 ${w} ${h}`);
+                .attr('width', '100%').attr('height', h).attr('viewBox', `0 0 ${w} ${h}`)
+                .style('cursor', 'grab');
+            flowSvg = svg;
+
+            // Zoom group wraps all content
+            const g = svg.append('g');
 
             const inflows = flows.filter(f => f.to === 'Safe Wallet');
             const outflows = flows.filter(f => f.from === 'Safe Wallet');
@@ -310,11 +327,11 @@
             const walletX = w / 2, walletY = h / 2;
 
             // Central wallet
-            svg.append('rect').attr('x', walletX - 70).attr('y', walletY - 35).attr('width', 140).attr('height', 70)
+            g.append('rect').attr('x', walletX - 70).attr('y', walletY - 35).attr('width', 140).attr('height', 70)
                 .attr('rx', 12).attr('fill', '#00d4ff').attr('opacity', 0.9);
-            svg.append('text').attr('x', walletX).attr('y', walletY - 8).attr('text-anchor', 'middle')
+            g.append('text').attr('x', walletX).attr('y', walletY - 8).attr('text-anchor', 'middle')
                 .attr('fill', '#000').attr('font-weight', 'bold').attr('font-size', '13px').text('Safe Wallet');
-            svg.append('text').attr('x', walletX).attr('y', walletY + 12).attr('text-anchor', 'middle')
+            g.append('text').attr('x', walletX).attr('y', walletY + 12).attr('text-anchor', 'middle')
                 .attr('fill', '#000').attr('font-family', 'monospace').attr('font-size', '10px')
                 .text(DataTransform.shortenAddress(Router.getParams().address));
 
@@ -336,14 +353,14 @@
                 const path = d3.path();
                 path.moveTo(sourceX + 60, y);
                 path.bezierCurveTo(sourceX + 150, y, walletX - 150, walletY, walletX - 70, walletY);
-                svg.append('path').attr('d', path.toString()).attr('fill', 'none')
+                g.append('path').attr('d', path.toString()).attr('fill', 'none')
                     .attr('stroke', '#4ade80').attr('stroke-width', Math.max(2, Math.log(flow.value + 1) * 1.2)).attr('stroke-opacity', 0.6);
 
-                svg.append('rect').attr('x', sourceX - 60).attr('y', y - 14).attr('width', 120).attr('height', 28)
+                g.append('rect').attr('x', sourceX - 60).attr('y', y - 14).attr('width', 120).attr('height', 28)
                     .attr('rx', 6).attr('fill', color).attr('opacity', 0.3).attr('stroke', color);
-                svg.append('text').attr('x', sourceX).attr('y', y + 4).attr('text-anchor', 'middle')
+                g.append('text').attr('x', sourceX).attr('y', y + 4).attr('text-anchor', 'middle')
                     .attr('fill', '#e0e0e0').attr('font-family', 'monospace').attr('font-size', '10px').text(flow.from);
-                svg.append('text').attr('x', sourceX + 100).attr('y', y - 20)
+                g.append('text').attr('x', sourceX + 100).attr('y', y - 20)
                     .attr('fill', '#4ade80').attr('font-size', '9px').text(`+${flow.value.toLocaleString()} ${flow.token}`);
             });
 
@@ -357,20 +374,39 @@
                 const path = d3.path();
                 path.moveTo(walletX + 70, walletY);
                 path.bezierCurveTo(walletX + 150, walletY, targetX - 150, y, targetX - 60, y);
-                svg.append('path').attr('d', path.toString()).attr('fill', 'none')
+                g.append('path').attr('d', path.toString()).attr('fill', 'none')
                     .attr('stroke', '#f87171').attr('stroke-width', Math.max(2, Math.log(flow.value + 1) * 1.2)).attr('stroke-opacity', 0.6);
 
-                svg.append('rect').attr('x', targetX - 60).attr('y', y - 14).attr('width', 120).attr('height', 28)
+                g.append('rect').attr('x', targetX - 60).attr('y', y - 14).attr('width', 120).attr('height', 28)
                     .attr('rx', 6).attr('fill', color).attr('opacity', 0.3).attr('stroke', color);
-                svg.append('text').attr('x', targetX).attr('y', y + 4).attr('text-anchor', 'middle')
+                g.append('text').attr('x', targetX).attr('y', y + 4).attr('text-anchor', 'middle')
                     .attr('fill', '#e0e0e0').attr('font-family', 'monospace').attr('font-size', '10px').text(flow.to);
-                svg.append('text').attr('x', targetX - 100).attr('y', y - 20)
+                g.append('text').attr('x', targetX - 100).attr('y', y - 20)
                     .attr('fill', '#f87171').attr('font-size', '9px').text(`-${flow.value.toLocaleString()} ${flow.token}`);
             });
 
             const chainLabel = chain === 'all' ? 'All Chains' : chain.charAt(0).toUpperCase() + chain.slice(1);
-            svg.append('text').attr('x', w / 2).attr('y', 25).attr('text-anchor', 'middle')
+            g.append('text').attr('x', w / 2).attr('y', 25).attr('text-anchor', 'middle')
                 .attr('fill', '#888').attr('font-size', '12px').text(`${chainLabel} - Major Fund Flows`);
+
+            // Zoom behavior
+            flowZoom = d3.zoom()
+                .scaleExtent([0.3, 5])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                })
+                .on('start', () => svg.style('cursor', 'grabbing'))
+                .on('end', () => svg.style('cursor', 'grab'));
+
+            svg.call(flowZoom);
+
+            // Reset zoom button
+            const resetBtn = document.getElementById('reset-flow-zoom');
+            if (resetBtn) {
+                resetBtn.onclick = () => {
+                    svg.transition().duration(500).call(flowZoom.transform, d3.zoomIdentity);
+                };
+            }
         }
 
         function hexToRgb(hex) {
