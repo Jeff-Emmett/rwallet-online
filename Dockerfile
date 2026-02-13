@@ -15,10 +15,14 @@ RUN echo 'server { \
         try_files $uri $uri/ /index.html; \
     } \
     \
-    # Cache static assets \
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ { \
+    # Cache static assets (short TTL for JS to allow updates) \
+    location ~* \.(png|jpg|jpeg|gif|ico|svg|woff|woff2)$ { \
         expires 1y; \
         add_header Cache-Control "public, immutable"; \
+    } \
+    location ~* \.(js|css)$ { \
+        expires 1h; \
+        add_header Cache-Control "public, must-revalidate"; \
     } \
     \
     # Gzip compression \

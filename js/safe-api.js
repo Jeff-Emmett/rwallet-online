@@ -162,7 +162,7 @@ const SafeAPI = (() => {
             } catch (e) {
                 // Chain doesn't have this Safe or API error - skip
             }
-            await sleep(150);
+            await sleep(300);
         }
 
         return results;
@@ -173,12 +173,14 @@ const SafeAPI = (() => {
      * Returns { info, balances, outgoing, incoming }
      */
     async function fetchChainData(address, chainId) {
-        const [info, balances, outgoing, incoming] = await Promise.all([
-            getSafeInfo(address, chainId),
-            getBalances(address, chainId),
-            getAllMultisigTransactions(address, chainId),
-            getAllIncomingTransfers(address, chainId),
-        ]);
+        // Fetch sequentially to avoid rate limits
+        const info = await getSafeInfo(address, chainId);
+        await sleep(200);
+        const balances = await getBalances(address, chainId);
+        await sleep(200);
+        const outgoing = await getAllMultisigTransactions(address, chainId);
+        await sleep(200);
+        const incoming = await getAllIncomingTransfers(address, chainId);
 
         return { chainId, info, balances, outgoing, incoming };
     }
