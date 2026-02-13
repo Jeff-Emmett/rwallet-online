@@ -31,20 +31,47 @@ const SafeAPI = (() => {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    async function fetchJSON(url, retries = 4) {
+    /**
+     * Fetch JSON with retry + exponential backoff on 429.
+     * Returns null on 404. Throws on other errors.
+     */
+    async function fetchJSON(url, retries = 5) {
         for (let attempt = 0; attempt <= retries; attempt++) {
             const res = await fetch(url);
             if (res.status === 404) return null;
             if (res.status === 429) {
-                const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
-                console.warn(`Rate limited (429), retrying in ${delay}ms... (${url})`);
+                // Start at 2s, then 4s, 8s, 16s, 32s
+                const delay = Math.min(2000 * Math.pow(2, attempt), 32000);
+                console.warn(`429 rate limited, retry ${attempt + 1}/${retries} in ${delay}ms...`);
                 await sleep(delay);
                 continue;
             }
             if (!res.ok) throw new Error(`API error ${res.status}: ${res.statusText} (${url})`);
             return res.json();
         }
-        throw new Error(`Rate limited after ${retries} retries: ${url}`);
+        // Exhausted retries — return null instead of throwing to be graceful
+        console.error(`Rate limited after ${retries} retries, skipping: ${url}`);
+        return null;
+    }
+
+    /**
+     * Run async tasks with a concurrency limit.
+     * Returns array of results in original order.
+     */
+    async function pooled(tasks, concurrency = 2) {
+        const results = new Array(tasks.length);
+        let next = 0;
+
+        async function worker() {
+            while (next < tasks.length) {
+                const i = next++;
+                results[i] = await tasks[i]();
+            }
+        }
+
+        const workers = Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker());
+        await Promise.all(workers);
+        return results;
     }
 
     // ─── Core API Methods ──────────────────────────────────────────
@@ -83,7 +110,6 @@ const SafeAPI = (() => {
                 logoUri: b.token.logoUri,
             } : null,
             balance: b.balance,
-            // Human-readable balance
             balanceFormatted: b.token
                 ? (parseFloat(b.balance) / Math.pow(10, b.token.decimals)).toFixed(b.token.decimals > 6 ? 4 : 2)
                 : (parseFloat(b.balance) / 1e18).toFixed(4),
@@ -105,7 +131,6 @@ const SafeAPI = (() => {
             if (!data || !data.results) break;
             allTxs.push(...data.results);
             url = data.next;
-            // Safety: cap at 1000 transactions
             if (allTxs.length >= 1000) break;
         }
         return allTxs;
@@ -147,33 +172,37 @@ const SafeAPI = (() => {
 
     /**
      * Detect which chains have a Safe deployed for this address.
-     * Each chain has its own API server, so we can check all in parallel.
+     * Uses concurrency pool of 3 to avoid global rate limits.
      * Returns array of { chainId, chain, safeInfo }
      */
     async function detectSafeChains(address) {
-        const checks = Object.entries(CHAINS).map(async ([chainId, chain]) => {
+        const entries = Object.entries(CHAINS);
+        const tasks = entries.map(([chainId, chain]) => async () => {
             try {
                 const info = await getSafeInfo(address, parseInt(chainId));
                 if (info) return { chainId: parseInt(chainId), chain, safeInfo: info };
             } catch (e) {
-                // Chain doesn't have this Safe or API error - skip
+                // skip
             }
             return null;
         });
 
-        const results = await Promise.all(checks);
+        const results = await pooled(tasks, 3);
         return results.filter(Boolean);
     }
 
     /**
      * Fetch comprehensive wallet data for a single chain.
-     * Sequential within the same chain to respect per-server rate limits.
-     * Returns { info, balances, outgoing, incoming }
+     * Sequential within the same chain with small delays.
+     * Returns { chainId, info, balances, outgoing, incoming }
      */
     async function fetchChainData(address, chainId) {
         const info = await getSafeInfo(address, chainId);
+        await sleep(300);
         const balances = await getBalances(address, chainId);
+        await sleep(300);
         const outgoing = await getAllMultisigTransactions(address, chainId);
+        await sleep(300);
         const incoming = await getAllIncomingTransfers(address, chainId);
 
         return { chainId, info, balances, outgoing, incoming };
@@ -181,18 +210,23 @@ const SafeAPI = (() => {
 
     /**
      * Fetch wallet data across all detected chains.
-     * Parallel across chains (different servers), sequential within each chain.
+     * Concurrency pool of 2 chains at a time — fast but gentle.
+     * Failures are non-fatal: failed chains are skipped.
      * Returns Map<chainId, chainData>
      */
     async function fetchAllChainsData(address, detectedChains) {
         const dataMap = new Map();
 
-        const fetches = detectedChains.map(async ({ chainId }) => {
-            const data = await fetchChainData(address, chainId);
-            dataMap.set(chainId, data);
+        const tasks = detectedChains.map(({ chainId }) => async () => {
+            try {
+                const data = await fetchChainData(address, chainId);
+                dataMap.set(chainId, data);
+            } catch (e) {
+                console.warn(`Failed to fetch chain ${chainId}, skipping:`, e.message);
+            }
         });
 
-        await Promise.all(fetches);
+        await pooled(tasks, 2);
         return dataMap;
     }
 
