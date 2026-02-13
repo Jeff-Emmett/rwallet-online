@@ -757,6 +757,25 @@
         // ─── EncryptID Auth ────────────────────────────────────────
         EncryptID.renderAuthButton('encryptid-auth');
 
+        // If redirected from a visualization page that requires auth, show a message
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('login') === 'required') {
+            const returnUrl = urlParams.get('return');
+            const banner = document.createElement('div');
+            banner.style.cssText = 'background:#1e293b;border:1px solid var(--primary);border-radius:12px;padding:16px;margin-bottom:16px;text-align:center;color:#94a3b8;font-size:0.9rem;';
+            banner.innerHTML = 'Please sign in with EncryptID to access wallet visualizations.';
+            const authContainer = document.getElementById('encryptid-auth');
+            if (authContainer) authContainer.parentNode.insertBefore(banner, authContainer);
+
+            // After successful auth, redirect back
+            const checkAuth = setInterval(() => {
+                if (EncryptID.isAuthenticated() && returnUrl) {
+                    clearInterval(checkAuth);
+                    window.location.href = decodeURIComponent(returnUrl);
+                }
+            }, 500);
+        }
+
         // ─── Wallet Input Logic ────────────────────────────────────
         const DEMO_ADDRESS = '0x29567BdBcC92aCF37AC6B56B69180857bB69f7D1';
 

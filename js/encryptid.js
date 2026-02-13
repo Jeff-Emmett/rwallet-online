@@ -233,6 +233,20 @@ const EncryptID = (() => {
         render();
     }
 
+    // ─── Auth Gate ──────────────────────────────────────────────
+
+    /**
+     * Require authentication before accessing a page.
+     * If not authenticated, redirects to index.html with a return URL.
+     * Call at the top of visualization pages.
+     */
+    function requireAuth() {
+        if (isAuthenticated()) return true;
+        const returnUrl = encodeURIComponent(window.location.href);
+        window.location.replace(`/index.html?login=required&return=${returnUrl}`);
+        return false;
+    }
+
     // ─── Public API ──────────────────────────────────────────────
     return {
         authenticate,
@@ -241,5 +255,6 @@ const EncryptID = (() => {
         isAuthenticated,
         getUser,
         renderAuthButton,
+        requireAuth,
     };
 })();
