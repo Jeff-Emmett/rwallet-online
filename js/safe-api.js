@@ -147,39 +147,33 @@ const SafeAPI = (() => {
 
     /**
      * Detect which chains have a Safe deployed for this address.
-     * Checks all supported chains in parallel.
+     * Each chain has its own API server, so we can check all in parallel.
      * Returns array of { chainId, chain, safeInfo }
      */
     async function detectSafeChains(address) {
-        const entries = Object.entries(CHAINS);
-        const results = [];
-
-        // Check chains sequentially with small delay to avoid rate limits
-        for (const [chainId, chain] of entries) {
+        const checks = Object.entries(CHAINS).map(async ([chainId, chain]) => {
             try {
                 const info = await getSafeInfo(address, parseInt(chainId));
-                if (info) results.push({ chainId: parseInt(chainId), chain, safeInfo: info });
+                if (info) return { chainId: parseInt(chainId), chain, safeInfo: info };
             } catch (e) {
                 // Chain doesn't have this Safe or API error - skip
             }
-            await sleep(300);
-        }
+            return null;
+        });
 
-        return results;
+        const results = await Promise.all(checks);
+        return results.filter(Boolean);
     }
 
     /**
      * Fetch comprehensive wallet data for a single chain.
+     * Sequential within the same chain to respect per-server rate limits.
      * Returns { info, balances, outgoing, incoming }
      */
     async function fetchChainData(address, chainId) {
-        // Fetch sequentially to avoid rate limits
         const info = await getSafeInfo(address, chainId);
-        await sleep(200);
         const balances = await getBalances(address, chainId);
-        await sleep(200);
         const outgoing = await getAllMultisigTransactions(address, chainId);
-        await sleep(200);
         const incoming = await getAllIncomingTransfers(address, chainId);
 
         return { chainId, info, balances, outgoing, incoming };
@@ -187,18 +181,18 @@ const SafeAPI = (() => {
 
     /**
      * Fetch wallet data across all detected chains.
+     * Parallel across chains (different servers), sequential within each chain.
      * Returns Map<chainId, chainData>
      */
     async function fetchAllChainsData(address, detectedChains) {
         const dataMap = new Map();
 
-        // Fetch chains sequentially to avoid rate limits
-        for (const { chainId } of detectedChains) {
+        const fetches = detectedChains.map(async ({ chainId }) => {
             const data = await fetchChainData(address, chainId);
             dataMap.set(chainId, data);
-            await sleep(200);
-        }
+        });
 
+        await Promise.all(fetches);
         return dataMap;
     }
 
