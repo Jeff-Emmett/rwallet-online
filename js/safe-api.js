@@ -27,11 +27,24 @@ const SafeAPI = (() => {
         return `${getChain(chainId).txService}/api/v1${path}`;
     }
 
-    async function fetchJSON(url) {
-        const res = await fetch(url);
-        if (res.status === 404) return null;
-        if (!res.ok) throw new Error(`API error ${res.status}: ${res.statusText} (${url})`);
-        return res.json();
+    async function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function fetchJSON(url, retries = 4) {
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            const res = await fetch(url);
+            if (res.status === 404) return null;
+            if (res.status === 429) {
+                const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+                console.warn(`Rate limited (429), retrying in ${delay}ms... (${url})`);
+                await sleep(delay);
+                continue;
+            }
+            if (!res.ok) throw new Error(`API error ${res.status}: ${res.statusText} (${url})`);
+            return res.json();
+        }
+        throw new Error(`Rate limited after ${retries} retries: ${url}`);
     }
 
     // ─── Core API Methods ──────────────────────────────────────────
@@ -138,18 +151,21 @@ const SafeAPI = (() => {
      * Returns array of { chainId, chain, safeInfo }
      */
     async function detectSafeChains(address) {
-        const checks = Object.entries(CHAINS).map(async ([chainId, chain]) => {
+        const entries = Object.entries(CHAINS);
+        const results = [];
+
+        // Check chains sequentially with small delay to avoid rate limits
+        for (const [chainId, chain] of entries) {
             try {
                 const info = await getSafeInfo(address, parseInt(chainId));
-                if (info) return { chainId: parseInt(chainId), chain, safeInfo: info };
+                if (info) results.push({ chainId: parseInt(chainId), chain, safeInfo: info });
             } catch (e) {
                 // Chain doesn't have this Safe or API error - skip
             }
-            return null;
-        });
+            await sleep(150);
+        }
 
-        const results = await Promise.all(checks);
-        return results.filter(Boolean);
+        return results;
     }
 
     /**
@@ -174,12 +190,13 @@ const SafeAPI = (() => {
     async function fetchAllChainsData(address, detectedChains) {
         const dataMap = new Map();
 
-        const fetches = detectedChains.map(async ({ chainId }) => {
+        // Fetch chains sequentially to avoid rate limits
+        for (const { chainId } of detectedChains) {
             const data = await fetchChainData(address, chainId);
             dataMap.set(chainId, data);
-        });
+            await sleep(200);
+        }
 
-        await Promise.all(fetches);
         return dataMap;
     }
 
