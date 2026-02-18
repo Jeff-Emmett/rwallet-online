@@ -521,10 +521,23 @@
 </head>
 <body>
 
+    <!-- Nav -->
+    <nav style="border-bottom:1px solid var(--border);padding:1rem 0;">
+        <div class="container" style="display:flex;align-items:center;justify-content:space-between;">
+            <a href="/" style="display:flex;align-items:center;gap:0.5rem;text-decoration:none;color:var(--text);">
+                <span style="font-size:1.1rem;font-weight:600;">rWallet</span>
+            </a>
+            <div style="display:flex;align-items:center;gap:1rem;">
+                <a href="#" id="nav-demo-link" style="color:var(--text-dim);text-decoration:none;font-size:0.875rem;">Demo</a>
+                <a href="#" onclick="document.getElementById('wallet-input').focus();return false;" style="color:var(--text-dim);text-decoration:none;font-size:0.875rem;">Explore Wallet</a>
+                <span id="encryptid-auth" style="display:inline-block;"></span>
+            </div>
+        </div>
+    </nav>
+
     <!-- Hero -->
     <section class="hero">
         <div class="badge">Part of the rSpace Ecosystem</div>
-        <div id="encryptid-auth" style="margin-bottom:16px;min-height:32px;"></div>
         <h1><span>Democratic Wallet Management</span><br>for Communities</h1>
         <p class="hero-sub">
             Interactive visualizations for <strong>group treasury management</strong>.
@@ -742,29 +755,26 @@
 
     <!-- Footer -->
     <footer>
-        <div class="footer-links">
-            <span>Built with <a href="https://d3js.org" target="_blank" rel="noopener">D3.js</a></span>
-            <span class="footer-sep">|</span>
-            <span>Data from <a href="https://safe.global" target="_blank" rel="noopener">Safe Global API</a></span>
+        <div class="footer-links" style="gap:12px;margin-bottom:16px;">
+            <span style="font-weight:500;color:var(--text-dim);">r* Ecosystem</span>
+            <a href="https://rspace.online">rSpace</a>
+            <a href="https://rmaps.online">rMaps</a>
+            <a href="https://rnotes.online">rNotes</a>
+            <a href="https://rvote.online">rVote</a>
+            <a href="https://rfunds.online">rFunds</a>
+            <a href="https://rtrips.online">rTrips</a>
+            <a href="https://rcart.online">rCart</a>
+            <a href="https://rwallet.online" style="color:var(--primary);">rWallet</a>
+            <a href="https://rfiles.online">rFiles</a>
+            <a href="https://rtube.online">rTube</a>
+            <a href="https://rcal.online">rCal</a>
+            <a href="https://rnetwork.online">rNetwork</a>
+            <a href="https://rinbox.online">rInbox</a>
+            <a href="https://rstack.online">rStack</a>
+            <a href="https://rauctions.online">rAuctions</a>
+            <a href="https://rpubs.online">rPubs</a>
         </div>
-        <p>No backend. No tracking. All data fetched client-side from public APIs.</p>
-        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; font-size: 0.85rem; color: #64748b;">
-            <span style="font-weight: 500; color: #94a3b8;">r* Ecosystem</span>
-            <a href="https://rspace.online" style="color: #64748b; text-decoration: none;">🌌 rSpace</a>
-            <a href="https://rmaps.online" style="color: #64748b; text-decoration: none;">🗺️ rMaps</a>
-            <a href="https://rnotes.online" style="color: #64748b; text-decoration: none;">📝 rNotes</a>
-            <a href="https://rvote.online" style="color: #64748b; text-decoration: none;">🗳️ rVote</a>
-            <a href="https://rfunds.online" style="color: #64748b; text-decoration: none;">💰 rFunds</a>
-            <a href="https://rtrips.online" style="color: #64748b; text-decoration: none;">✈️ rTrips</a>
-            <a href="https://rcart.online" style="color: #64748b; text-decoration: none;">🛒 rCart</a>
-            <a href="https://rwallet.online" style="color: #94a3b8; text-decoration: none; font-weight: 500;">💼 rWallet</a>
-            <a href="https://rfiles.online" style="color: #64748b; text-decoration: none;">📁 rFiles</a>
-            <a href="https://rinbox.online" style="color: #64748b; text-decoration: none;">✉️ rInbox</a>
-            <a href="https://rnetwork.online" style="color: #64748b; text-decoration: none;">🌐 rNetwork</a>
-        </div>
-        <p style="margin-top: 8px; font-size: 0.75rem; color: #475569; text-align: center;">
-            Part of the r* ecosystem — collaborative tools for communities.
-        </p>
+        <p>Part of the r* ecosystem — collaborative tools for communities.</p>
     </footer>
 
     <script src="js/encryptid.browser.js"></script>
@@ -799,6 +809,14 @@
         const btn = document.getElementById('explore-btn');
         const error = document.getElementById('input-error');
         const demoLink = document.getElementById('demo-link');
+        const navDemoLink = document.getElementById('nav-demo-link');
+        if (navDemoLink) {
+            navDemoLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                input.value = DEMO_ADDRESS;
+                window.location.href = '/wallet/' + DEMO_ADDRESS;
+            });
+        }
 
         function isValidAddress(addr) {
             return /^0x[a-fA-F0-9]{40}$/.test(addr);
