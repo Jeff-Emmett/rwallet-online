@@ -6,14 +6,15 @@
 
 const SafeAPI = (() => {
     // ─── Chain Configuration ───────────────────────────────────────
+    // Use direct Safe Global API URLs (api.safe.global) to avoid redirect overhead
     const CHAINS = {
-        1:     { name: 'Ethereum',  slug: 'mainnet',      txService: 'https://safe-transaction-mainnet.safe.global',       explorer: 'https://etherscan.io',                color: '#627eea', symbol: 'ETH'  },
-        10:    { name: 'Optimism',  slug: 'optimism',      txService: 'https://safe-transaction-optimism.safe.global',      explorer: 'https://optimistic.etherscan.io',      color: '#ff0420', symbol: 'ETH'  },
-        100:   { name: 'Gnosis',    slug: 'gnosis-chain',  txService: 'https://safe-transaction-gnosis-chain.safe.global',  explorer: 'https://gnosisscan.io',                color: '#04795b', symbol: 'xDAI' },
-        137:   { name: 'Polygon',   slug: 'polygon',       txService: 'https://safe-transaction-polygon.safe.global',       explorer: 'https://polygonscan.com',              color: '#8247e5', symbol: 'POL'  },
-        8453:  { name: 'Base',      slug: 'base',          txService: 'https://safe-transaction-base.safe.global',          explorer: 'https://basescan.org',                 color: '#0052ff', symbol: 'ETH'  },
-        42161: { name: 'Arbitrum',  slug: 'arbitrum',      txService: 'https://safe-transaction-arbitrum.safe.global',      explorer: 'https://arbiscan.io',                  color: '#28a0f0', symbol: 'ETH'  },
-        43114: { name: 'Avalanche', slug: 'avalanche',     txService: 'https://safe-transaction-avalanche.safe.global',     explorer: 'https://snowtrace.io',                 color: '#e84142', symbol: 'AVAX' },
+        1:     { name: 'Ethereum',  slug: 'eth',   txService: 'https://safe-transaction-mainnet.safe.global',       explorer: 'https://etherscan.io',                color: '#627eea', symbol: 'ETH'  },
+        10:    { name: 'Optimism',  slug: 'oeth',  txService: 'https://safe-transaction-optimism.safe.global',      explorer: 'https://optimistic.etherscan.io',      color: '#ff0420', symbol: 'ETH'  },
+        100:   { name: 'Gnosis',    slug: 'gno',   txService: 'https://safe-transaction-gnosis-chain.safe.global',  explorer: 'https://gnosisscan.io',                color: '#04795b', symbol: 'xDAI' },
+        137:   { name: 'Polygon',   slug: 'pol',   txService: 'https://safe-transaction-polygon.safe.global',       explorer: 'https://polygonscan.com',              color: '#8247e5', symbol: 'POL'  },
+        8453:  { name: 'Base',      slug: 'base',  txService: 'https://safe-transaction-base.safe.global',          explorer: 'https://basescan.org',                 color: '#0052ff', symbol: 'ETH'  },
+        42161: { name: 'Arbitrum',  slug: 'arb1',  txService: 'https://safe-transaction-arbitrum.safe.global',      explorer: 'https://arbiscan.io',                  color: '#28a0f0', symbol: 'ETH'  },
+        43114: { name: 'Avalanche', slug: 'avax',  txService: 'https://safe-transaction-avalanche.safe.global',     explorer: 'https://snowtrace.io',                 color: '#e84142', symbol: 'AVAX' },
     };
 
     // ─── Helpers ───────────────────────────────────────────────────
@@ -120,7 +121,7 @@ const SafeAPI = (() => {
     }
 
     /**
-     * Fetch all multisig transactions (paginated)
+     * Fetch all multisig transactions (paginated, with inter-page delays)
      */
     async function getAllMultisigTransactions(address, chainId, limit = 100) {
         const allTxs = [];
@@ -131,13 +132,14 @@ const SafeAPI = (() => {
             if (!data || !data.results) break;
             allTxs.push(...data.results);
             url = data.next;
-            if (allTxs.length >= 1000) break;
+            if (allTxs.length >= 500) break;
+            if (url) await sleep(400);
         }
         return allTxs;
     }
 
     /**
-     * Fetch all incoming transfers (paginated)
+     * Fetch all incoming transfers (paginated, with inter-page delays)
      */
     async function getAllIncomingTransfers(address, chainId, limit = 100) {
         const allTransfers = [];
@@ -148,7 +150,8 @@ const SafeAPI = (() => {
             if (!data || !data.results) break;
             allTransfers.push(...data.results);
             url = data.next;
-            if (allTransfers.length >= 1000) break;
+            if (allTransfers.length >= 500) break;
+            if (url) await sleep(400);
         }
         return allTransfers;
     }
@@ -172,37 +175,38 @@ const SafeAPI = (() => {
 
     /**
      * Detect which chains have a Safe deployed for this address.
-     * Uses concurrency pool of 3 to avoid global rate limits.
+     * Sequential with delays to avoid rate limits across the shared Safe API.
      * Returns array of { chainId, chain, safeInfo }
      */
     async function detectSafeChains(address) {
         const entries = Object.entries(CHAINS);
-        const tasks = entries.map(([chainId, chain]) => async () => {
+        const results = [];
+
+        for (const [chainId, chain] of entries) {
             try {
                 const info = await getSafeInfo(address, parseInt(chainId));
-                if (info) return { chainId: parseInt(chainId), chain, safeInfo: info };
+                if (info) results.push({ chainId: parseInt(chainId), chain, safeInfo: info });
             } catch (e) {
-                // skip
+                // skip failed chains
             }
-            return null;
-        });
+            await sleep(500);
+        }
 
-        const results = await pooled(tasks, 3);
-        return results.filter(Boolean);
+        return results;
     }
 
     /**
      * Fetch comprehensive wallet data for a single chain.
-     * Sequential within the same chain with small delays.
+     * Sequential within the same chain with delays to respect rate limits.
      * Returns { chainId, info, balances, outgoing, incoming }
      */
     async function fetchChainData(address, chainId) {
         const info = await getSafeInfo(address, chainId);
-        await sleep(300);
+        await sleep(600);
         const balances = await getBalances(address, chainId);
-        await sleep(300);
+        await sleep(600);
         const outgoing = await getAllMultisigTransactions(address, chainId);
-        await sleep(300);
+        await sleep(600);
         const incoming = await getAllIncomingTransfers(address, chainId);
 
         return { chainId, info, balances, outgoing, incoming };
@@ -210,23 +214,23 @@ const SafeAPI = (() => {
 
     /**
      * Fetch wallet data across all detected chains.
-     * Concurrency pool of 2 chains at a time — fast but gentle.
+     * Sequential to avoid overwhelming the Safe API rate limits.
      * Failures are non-fatal: failed chains are skipped.
      * Returns Map<chainId, chainData>
      */
     async function fetchAllChainsData(address, detectedChains) {
         const dataMap = new Map();
 
-        const tasks = detectedChains.map(({ chainId }) => async () => {
+        for (const { chainId } of detectedChains) {
             try {
                 const data = await fetchChainData(address, chainId);
                 dataMap.set(chainId, data);
             } catch (e) {
                 console.warn(`Failed to fetch chain ${chainId}, skipping:`, e.message);
             }
-        });
+            await sleep(500);
+        }
 
-        await pooled(tasks, 2);
         return dataMap;
     }
 

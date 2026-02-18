@@ -358,8 +358,8 @@
             maxBalance = d3.max(balanceData, d => d.balance) || 1;
             maxTx = d3.max(txs, d => d.usd) || 1;
 
-            balanceScale = d3.scaleLinear().domain([0, maxBalance]).range([12, 100]);
-            flowScale = d3.scaleLinear().domain([0, maxBalance]).range([0, 100 - 12]);
+            balanceScale = d3.scaleLinear().domain([0, maxBalance]).range([12, 120]);
+            flowScale = d3.scaleLinear().domain([0, maxBalance]).range([0, 120 - 12]);
 
             contentGroup = mainGroup.append('g').attr('clip-path', 'url(#chart-clip)').attr('class', 'content-group');
 
@@ -444,48 +444,68 @@
             contentGroup.append('path').datum(balanceData).attr('fill', 'none').attr('stroke', 'rgba(0,0,0,0.2)').attr('stroke-width', 1)
                 .attr('d', d3.line().x(d => scale(d.date)).y(d => centerY + balanceScale(d.balance) / 2).curve(smoothCurve));
 
-            // Flows
-            const flowHeight = 60;
+            // Sankey-proportional flows: width proportional to river width at that point
+            const flowHeight = 80;
             let prevBalance = 0;
 
             txs.forEach(tx => {
                 const x = scale(tx.date);
-                const flowWidth = flowScale(tx.usd);
-                const halfWidth = Math.max(flowWidth / 2, 3);
 
+                // Compute balance before and after to get river width at this point
+                const balanceBefore = Math.max(0, prevBalance);
                 if (tx.type === 'in') prevBalance += tx.usd;
                 else prevBalance -= tx.usd;
                 const balanceAfter = Math.max(0, prevBalance);
+
+                // Sankey: flow width is proportional to river width * (tx.usd / balance)
+                const relevantBalance = tx.type === 'in' ? balanceAfter : balanceBefore;
+                const riverW = balanceScale(relevantBalance);
+                const proportion = relevantBalance > 0 ? Math.min(1, tx.usd / relevantBalance) : 0.5;
+                // River-end width = proportion of the river
+                const riverEndHalf = Math.max(4, (proportion * riverW) / 2);
+                // Far-end width = narrower (30% of river end for dramatic taper)
+                const farEndHalf = Math.max(2, riverEndHalf * 0.3);
+
                 const riverTopAfter = centerY - balanceScale(balanceAfter) / 2;
                 const riverBottomAfter = centerY + balanceScale(balanceAfter) / 2;
+                const riverTopBefore = centerY - balanceScale(balanceBefore) / 2;
+                const riverBottomBefore = centerY + balanceScale(balanceBefore) / 2;
 
                 if (tx.type === 'in') {
+                    // Inflow: narrow at top (source), wide at river
                     const endY = riverTopAfter;
                     const startY = endY - flowHeight;
-                    const midY = startY + flowHeight * 0.5;
+                    const cpY1 = startY + flowHeight * 0.55;
+                    const cpY2 = startY + flowHeight * 0.75;
                     const path = d3.path();
-                    path.moveTo(x - halfWidth * 0.6, startY);
-                    path.quadraticCurveTo(x - halfWidth * 1.1, midY, x - halfWidth, endY);
-                    path.lineTo(x + halfWidth, endY);
-                    path.quadraticCurveTo(x + halfWidth * 1.1, midY, x + halfWidth * 0.6, startY);
+                    // Left edge: narrow at top, flares at bottom
+                    path.moveTo(x - farEndHalf, startY);
+                    path.bezierCurveTo(x - farEndHalf, cpY1, x - riverEndHalf, cpY2, x - riverEndHalf, endY);
+                    path.lineTo(x + riverEndHalf, endY);
+                    // Right edge: flares at bottom, narrow at top
+                    path.bezierCurveTo(x + riverEndHalf, cpY2, x + farEndHalf, cpY1, x + farEndHalf, startY);
                     path.closePath();
                     contentGroup.append('path').attr('d', path.toString()).attr('fill', 'url(#inflowGradient)')
-                        .attr('class', 'flow-path').attr('opacity', 0.9)
+                        .attr('class', 'flow-path').attr('opacity', 0.85)
                         .on('mouseover', event => showTooltip(event, tx, prevBalance))
                         .on('mousemove', event => moveTooltip(event))
                         .on('mouseout', hideTooltip);
                 } else {
-                    const startY = riverBottomAfter;
+                    // Outflow: wide at river, narrow at bottom
+                    const startY = riverBottomBefore;
                     const endY = startY + flowHeight;
-                    const midY = startY + flowHeight * 0.5;
+                    const cpY1 = startY + flowHeight * 0.25;
+                    const cpY2 = startY + flowHeight * 0.45;
                     const path = d3.path();
-                    path.moveTo(x - halfWidth, startY);
-                    path.quadraticCurveTo(x - halfWidth * 1.1, midY, x - halfWidth * 0.6, endY);
-                    path.lineTo(x + halfWidth * 0.6, endY);
-                    path.quadraticCurveTo(x + halfWidth * 1.1, midY, x + halfWidth, startY);
+                    // Left edge: wide at top (river), narrows at bottom
+                    path.moveTo(x - riverEndHalf, startY);
+                    path.bezierCurveTo(x - riverEndHalf, cpY1, x - farEndHalf, cpY2, x - farEndHalf, endY);
+                    path.lineTo(x + farEndHalf, endY);
+                    // Right edge: narrows at bottom, wide at top
+                    path.bezierCurveTo(x + farEndHalf, cpY2, x + riverEndHalf, cpY1, x + riverEndHalf, startY);
                     path.closePath();
                     contentGroup.append('path').attr('d', path.toString()).attr('fill', 'url(#outflowGradient)')
-                        .attr('class', 'flow-path').attr('opacity', 0.9)
+                        .attr('class', 'flow-path').attr('opacity', 0.85)
                         .on('mouseover', event => showTooltip(event, tx, prevBalance))
                         .on('mousemove', event => moveTooltip(event))
                         .on('mouseout', hideTooltip);
