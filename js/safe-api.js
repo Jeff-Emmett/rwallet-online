@@ -157,7 +157,8 @@ const SafeAPI = (() => {
     }
 
     /**
-     * Fetch all-transactions (combines multisig + module + incoming)
+     * Fetch all-transactions (combines multisig + module + incoming, with inter-page delays)
+     * Returns enriched transactions with transfers[] containing proper tokenInfo.
      */
     async function getAllTransactions(address, chainId, limit = 100) {
         const allTxs = [];
@@ -168,7 +169,8 @@ const SafeAPI = (() => {
             if (!data || !data.results) break;
             allTxs.push(...data.results);
             url = data.next;
-            if (allTxs.length >= 1000) break;
+            if (allTxs.length >= 3000) break;
+            if (url) await sleep(400);
         }
         return allTxs;
     }
@@ -197,7 +199,7 @@ const SafeAPI = (() => {
 
     /**
      * Fetch comprehensive wallet data for a single chain.
-     * Sequential within the same chain with delays to respect rate limits.
+     * Uses all-transactions endpoint for enriched transfer data with proper tokenInfo.
      * Returns { chainId, info, balances, outgoing, incoming }
      */
     async function fetchChainData(address, chainId) {
@@ -205,9 +207,34 @@ const SafeAPI = (() => {
         await sleep(600);
         const balances = await getBalances(address, chainId);
         await sleep(600);
-        const outgoing = await getAllMultisigTransactions(address, chainId);
-        await sleep(600);
-        const incoming = await getAllIncomingTransfers(address, chainId);
+
+        // all-transactions includes transfers[] with proper tokenInfo (decimals, symbol)
+        // This is more accurate than parsing dataDecoded which loses decimal info
+        const allTxs = await getAllTransactions(address, chainId);
+
+        const addrLower = address.toLowerCase();
+        const outgoing = [];
+        const incoming = [];
+
+        for (const tx of allTxs) {
+            // Collect multisig transactions as outgoing (they have transfers[] with tokenInfo)
+            if (tx.txType === 'MULTISIG_TRANSACTION') {
+                outgoing.push(tx);
+            }
+
+            // Extract incoming transfers from all transaction transfer events
+            if (tx.transfers) {
+                for (const t of tx.transfers) {
+                    if (t.to?.toLowerCase() === addrLower &&
+                        t.from?.toLowerCase() !== addrLower) {
+                        incoming.push({
+                            ...t,
+                            executionDate: t.executionDate || tx.executionDate,
+                        });
+                    }
+                }
+            }
+        }
 
         return { chainId, info, balances, outgoing, incoming };
     }

@@ -162,7 +162,7 @@
         let currentFilter = { chain: 'all', token: 'all' };
         let currentZoomTransform = d3.zoomIdentity;
         let svgElement, mainGroup, xScale, xAxisGroup, contentGroup;
-        let txs, balanceData, maxBalance, maxTx, balanceScale, flowScale;
+        let txs, balanceData, maxBalance, maxTx, balanceScale;
         let margin, width, height, centerY, timeExtent, timePadding;
 
         async function loadWallet(address) {
@@ -315,19 +315,17 @@
 
             const defs = mainGroup.append('defs');
 
-            const inflowGradient = defs.append('linearGradient').attr('id', 'inflowGradient').attr('x1', '0%').attr('y1', '0%').attr('x2', '0%').attr('y2', '100%');
-            inflowGradient.append('stop').attr('offset', '0%').attr('stop-color', '#4ade80').attr('stop-opacity', 0.3);
-            inflowGradient.append('stop').attr('offset', '30%').attr('stop-color', '#4ade80').attr('stop-opacity', 0.8);
-            inflowGradient.append('stop').attr('offset', '60%').attr('stop-color', '#22d3ee').attr('stop-opacity', 0.9);
-            inflowGradient.append('stop').attr('offset', '85%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.95);
+            const inflowGradient = defs.append('linearGradient').attr('id', 'inflowGradient').attr('x1', '0%').attr('y1', '0%').attr('x2', '100%').attr('y2', '100%');
+            inflowGradient.append('stop').attr('offset', '0%').attr('stop-color', '#4ade80').attr('stop-opacity', 0.4);
+            inflowGradient.append('stop').attr('offset', '40%').attr('stop-color', '#4ade80').attr('stop-opacity', 0.85);
+            inflowGradient.append('stop').attr('offset', '70%').attr('stop-color', '#22d3ee').attr('stop-opacity', 0.9);
             inflowGradient.append('stop').attr('offset', '100%').attr('stop-color', '#00d4ff').attr('stop-opacity', 1);
 
-            const outflowGradient = defs.append('linearGradient').attr('id', 'outflowGradient').attr('x1', '0%').attr('y1', '0%').attr('x2', '0%').attr('y2', '100%');
+            const outflowGradient = defs.append('linearGradient').attr('id', 'outflowGradient').attr('x1', '0%').attr('y1', '0%').attr('x2', '100%').attr('y2', '100%');
             outflowGradient.append('stop').attr('offset', '0%').attr('stop-color', '#00d4ff').attr('stop-opacity', 1);
-            outflowGradient.append('stop').attr('offset', '15%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.95);
-            outflowGradient.append('stop').attr('offset', '40%').attr('stop-color', '#f472b6').attr('stop-opacity', 0.9);
-            outflowGradient.append('stop').attr('offset', '70%').attr('stop-color', '#f87171').attr('stop-opacity', 0.8);
-            outflowGradient.append('stop').attr('offset', '100%').attr('stop-color', '#f87171').attr('stop-opacity', 0.3);
+            outflowGradient.append('stop').attr('offset', '30%').attr('stop-color', '#f472b6').attr('stop-opacity', 0.9);
+            outflowGradient.append('stop').attr('offset', '60%').attr('stop-color', '#f87171').attr('stop-opacity', 0.85);
+            outflowGradient.append('stop').attr('offset', '100%').attr('stop-color', '#f87171').attr('stop-opacity', 0.4);
 
             const riverGradient = defs.append('linearGradient').attr('id', 'riverGradient').attr('x1', '0%').attr('y1', '0%').attr('x2', '0%').attr('y2', '100%');
             riverGradient.append('stop').attr('offset', '0%').attr('stop-color', '#00d4ff').attr('stop-opacity', 0.9);
@@ -358,8 +356,7 @@
             maxBalance = d3.max(balanceData, d => d.balance) || 1;
             maxTx = d3.max(txs, d => d.usd) || 1;
 
-            balanceScale = d3.scaleLinear().domain([0, maxBalance]).range([12, 120]);
-            flowScale = d3.scaleLinear().domain([0, maxBalance]).range([0, 120 - 12]);
+            balanceScale = d3.scaleLinear().domain([0, maxBalance]).range([8, 120]);
 
             contentGroup = mainGroup.append('g').attr('clip-path', 'url(#chart-clip)').attr('class', 'content-group');
 
@@ -397,10 +394,10 @@
             if (currentZoomTransform !== d3.zoomIdentity) svgElement.call(zoom.transform, currentZoomTransform);
             window.currentZoom = zoom;
 
-            mainGroup.append('text').attr('x', width / 2).attr('y', -60).attr('text-anchor', 'middle')
-                .attr('fill', '#4ade80').attr('font-size', '14px').attr('font-weight', 'bold').text('INFLOWS');
-            mainGroup.append('text').attr('x', width / 2).attr('y', height + 65).attr('text-anchor', 'middle')
-                .attr('fill', '#f87171').attr('font-size', '14px').attr('font-weight', 'bold').text('OUTFLOWS');
+            mainGroup.append('text').attr('x', 30).attr('y', -60).attr('text-anchor', 'start')
+                .attr('fill', '#4ade80').attr('font-size', '13px').attr('font-weight', 'bold').attr('opacity', 0.8).text('INFLOWS ↘');
+            mainGroup.append('text').attr('x', width - 30).attr('y', height + 65).attr('text-anchor', 'end')
+                .attr('fill', '#f87171').attr('font-size', '13px').attr('font-weight', 'bold').attr('opacity', 0.8).text('↘ OUTFLOWS');
         }
 
         function zoomed(event) {
@@ -444,8 +441,9 @@
             contentGroup.append('path').datum(balanceData).attr('fill', 'none').attr('stroke', 'rgba(0,0,0,0.2)').attr('stroke-width', 1)
                 .attr('d', d3.line().x(d => scale(d.date)).y(d => centerY + balanceScale(d.balance) / 2).curve(smoothCurve));
 
-            // Sankey-proportional flows: width proportional to river width at that point
+            // Diagonal waterfall flows with sankey-proportional widths
             const flowHeight = 80;
+            const xOffset = flowHeight * 0.7;  // horizontal displacement for diagonal
             let prevBalance = 0;
 
             txs.forEach(tx => {
@@ -472,18 +470,28 @@
                 const riverBottomBefore = centerY + balanceScale(balanceBefore) / 2;
 
                 if (tx.type === 'in') {
-                    // Inflow: narrow at top (source), wide at river
+                    // Inflow waterfall: originates above-left, flows diagonally down-right into river
                     const endY = riverTopAfter;
                     const startY = endY - flowHeight;
-                    const cpY1 = startY + flowHeight * 0.55;
-                    const cpY2 = startY + flowHeight * 0.75;
+                    const startX = x - xOffset;
+                    const endX = x;
+
                     const path = d3.path();
-                    // Left edge: narrow at top, flares at bottom
-                    path.moveTo(x - farEndHalf, startY);
-                    path.bezierCurveTo(x - farEndHalf, cpY1, x - riverEndHalf, cpY2, x - riverEndHalf, endY);
-                    path.lineTo(x + riverEndHalf, endY);
-                    // Right edge: flares at bottom, narrow at top
-                    path.bezierCurveTo(x + riverEndHalf, cpY2, x + farEndHalf, cpY1, x + farEndHalf, startY);
+                    // Left edge: narrow at top-left, curves down-right to river
+                    path.moveTo(startX - farEndHalf, startY);
+                    path.bezierCurveTo(
+                        startX - farEndHalf, startY + flowHeight * 0.55,
+                        endX - riverEndHalf, endY - flowHeight * 0.45,
+                        endX - riverEndHalf, endY
+                    );
+                    // Bottom: full proportional width at river surface
+                    path.lineTo(endX + riverEndHalf, endY);
+                    // Right edge: curve back up-left to narrow top
+                    path.bezierCurveTo(
+                        endX + riverEndHalf, endY - flowHeight * 0.45,
+                        startX + farEndHalf, startY + flowHeight * 0.55,
+                        startX + farEndHalf, startY
+                    );
                     path.closePath();
                     contentGroup.append('path').attr('d', path.toString()).attr('fill', 'url(#inflowGradient)')
                         .attr('class', 'flow-path').attr('opacity', 0.85)
@@ -491,18 +499,28 @@
                         .on('mousemove', event => moveTooltip(event))
                         .on('mouseout', hideTooltip);
                 } else {
-                    // Outflow: wide at river, narrow at bottom
+                    // Outflow waterfall: exits river bottom, flows diagonally down-right away
                     const startY = riverBottomBefore;
                     const endY = startY + flowHeight;
-                    const cpY1 = startY + flowHeight * 0.25;
-                    const cpY2 = startY + flowHeight * 0.45;
+                    const startX = x;
+                    const endX = x + xOffset;
+
                     const path = d3.path();
-                    // Left edge: wide at top (river), narrows at bottom
-                    path.moveTo(x - riverEndHalf, startY);
-                    path.bezierCurveTo(x - riverEndHalf, cpY1, x - farEndHalf, cpY2, x - farEndHalf, endY);
-                    path.lineTo(x + farEndHalf, endY);
-                    // Right edge: narrows at bottom, wide at top
-                    path.bezierCurveTo(x + farEndHalf, cpY2, x + riverEndHalf, cpY1, x + riverEndHalf, startY);
+                    // Left edge: wide at river, curves down-right to narrow end
+                    path.moveTo(startX - riverEndHalf, startY);
+                    path.bezierCurveTo(
+                        startX - riverEndHalf, startY + flowHeight * 0.45,
+                        endX - farEndHalf, endY - flowHeight * 0.55,
+                        endX - farEndHalf, endY
+                    );
+                    // Bottom: narrow end
+                    path.lineTo(endX + farEndHalf, endY);
+                    // Right edge: curve back up to river
+                    path.bezierCurveTo(
+                        endX + farEndHalf, endY - flowHeight * 0.55,
+                        startX + riverEndHalf, startY + flowHeight * 0.45,
+                        startX + riverEndHalf, startY
+                    );
                     path.closePath();
                     contentGroup.append('path').attr('d', path.toString()).attr('fill', 'url(#outflowGradient)')
                         .attr('class', 'flow-path').attr('opacity', 0.85)
