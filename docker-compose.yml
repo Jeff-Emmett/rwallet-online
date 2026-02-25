@@ -22,7 +22,7 @@ services:
       - no-new-privileges:true
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.rwallet.rule=Host(`rwallet.online`) || Host(`www.rwallet.online`) || Host(`wallets.bondingcurve.tech`)"
+      - "traefik.http.routers.rwallet.rule=Host(`rwallet.online`) || Host(`www.rwallet.online`) || Host(`wallets.bondingcurve.tech`) || HostRegexp(`{subdomain:[a-z0-9-]+}.rwallet.online`)"
       - "traefik.http.routers.rwallet.entrypoints=web"
       - "traefik.http.services.rwallet.loadbalancer.server.port=80"
     healthcheck:
