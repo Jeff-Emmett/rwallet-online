@@ -507,6 +507,230 @@
             color: var(--border);
         }
 
+        /* ─── AppSwitcher ─────────────────────────────────── */
+
+        .app-switcher {
+            position: relative;
+        }
+
+        .app-switcher-trigger {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.625rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+            border: none;
+            cursor: pointer;
+            transition: background 0.15s;
+            white-space: nowrap;
+        }
+        .app-switcher-trigger:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .app-switcher-badge {
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 0.375rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 900;
+            color: #0f172a;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .app-switcher-arrow {
+            font-size: 0.7em;
+            opacity: 0.6;
+        }
+
+        .app-switcher-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 0.375rem;
+            width: 300px;
+            max-height: 70vh;
+            overflow-y: auto;
+            border-radius: 0.75rem;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+        }
+        .app-switcher-dropdown.open {
+            display: block;
+        }
+
+        .app-switcher-dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+        .app-switcher-dropdown::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .app-switcher-dropdown::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .app-switcher-header {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            padding: 0.75rem 0.875rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .app-switcher-header-badge {
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 0.5rem;
+            background: linear-gradient(135deg, #67e8f9, #c4b5fd, #fda4af);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 900;
+            color: #0f172a;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .app-switcher-header-text {
+            display: flex;
+            flex-direction: column;
+        }
+        .app-switcher-header-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .app-switcher-header-sub {
+            font-size: 10px;
+            color: #94a3b8;
+        }
+
+        .app-switcher-category {
+            padding: 0.75rem 0.875rem 0.25rem;
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #64748b;
+            user-select: none;
+        }
+
+        .app-switcher-item {
+            display: flex;
+            align-items: center;
+            transition: background 0.15s;
+        }
+        .app-switcher-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .app-switcher-item.current {
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .app-switcher-item a {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            flex: 1;
+            padding: 0.5rem 0.875rem;
+            color: #cbd5e1;
+            text-decoration: none;
+            min-width: 0;
+        }
+
+        .app-switcher-item-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            flex: 1;
+        }
+        .app-switcher-item-name {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        .app-switcher-item-name span:first-child {
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .app-switcher-item-name span:last-child {
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+        .app-switcher-item-desc {
+            font-size: 11px;
+            color: #94a3b8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .app-switcher-item .app-switcher-ext {
+            width: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: #22d3ee;
+            opacity: 0;
+            transition: opacity 0.15s;
+            flex-shrink: 0;
+            text-decoration: none;
+        }
+        .app-switcher-item:hover .app-switcher-ext {
+            opacity: 0.5;
+        }
+        .app-switcher-item .app-switcher-ext:hover {
+            opacity: 1 !important;
+        }
+
+        .app-switcher-footer {
+            padding: 0.625rem 0.875rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+        }
+        .app-switcher-footer a {
+            font-size: 11px;
+            color: #64748b;
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+        .app-switcher-footer a:hover {
+            color: #22d3ee;
+        }
+
+        /* badge colors */
+        .badge-teal    { background: #5eead4; }
+        .badge-amber   { background: #fcd34d; }
+        .badge-rose    { background: #fda4af; }
+        .badge-sky     { background: #7dd3fc; }
+        .badge-emerald { background: #6ee7b7; }
+        .badge-green   { background: #86efac; }
+        .badge-indigo  { background: #a5b4fc; }
+        .badge-fuchsia { background: #f0abfc; }
+        .badge-violet  { background: #c4b5fd; }
+        .badge-lime    { background: #bef264; }
+        .badge-yellow  { background: #fde047; }
+        .badge-orange  { background: #fdba74; }
+        .badge-red     { background: #fca5a5; }
+        .badge-blue    { background: #93c5fd; }
+        .badge-cyan    { background: #67e8f9; }
+        .badge-pink    { background: #f9a8d4; }
+        .badge-purple  { background: #d8b4fe; }
+
         /* ─── Responsive ──────────────────────────────────── */
 
         @media (max-width: 640px) {
@@ -516,6 +740,8 @@
             .wallet-input-group button { padding: 14px; }
             .demo-section { padding: 40px 20px; }
             .btn-row { flex-direction: column; align-items: center; }
+            .app-switcher-trigger .app-switcher-label { display: none; }
+            .app-switcher-dropdown { width: 280px; }
         }
     </style>
     <script defer src="https://rdata.online/collect.js" data-website-id="331bdc06-0bd0-4538-a7cd-e79ba428a876"></script>
@@ -525,9 +751,208 @@
     <!-- Nav -->
     <nav style="border-bottom:1px solid var(--border);padding:1rem 0;">
         <div class="container" style="display:flex;align-items:center;justify-content:space-between;">
-            <a href="/" style="display:flex;align-items:center;gap:0.5rem;text-decoration:none;color:var(--text);">
-                <span style="font-size:1.1rem;font-weight:600;">rWallet</span>
-            </a>
+            <!-- AppSwitcher -->
+            <div class="app-switcher" id="app-switcher">
+                <button class="app-switcher-trigger" id="app-switcher-trigger">
+                    <span class="app-switcher-badge badge-yellow">rW</span>
+                    <span class="app-switcher-label">rWallet</span>
+                    <span class="app-switcher-arrow">&#9662;</span>
+                </button>
+                <div class="app-switcher-dropdown" id="app-switcher-dropdown">
+                    <!-- Header -->
+                    <div class="app-switcher-header">
+                        <span class="app-switcher-header-badge">r*</span>
+                        <div class="app-switcher-header-text">
+                            <div class="app-switcher-header-title">rStack</div>
+                            <div class="app-switcher-header-sub">Self-hosted community app suite</div>
+                        </div>
+                    </div>
+                    <!-- Creating -->
+                    <div class="app-switcher-category">Creating</div>
+                    <div class="app-switcher-item">
+                        <a href="https://rspace.online">
+                            <span class="app-switcher-badge badge-teal">rS</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rSpace</span><span>&#x1f3a8;</span></div>
+                                <div class="app-switcher-item-desc">Real-time collaborative canvas</div>
+                            </div>
+                        </a>
+                        <a href="https://rspace.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rspace.online">&#8599;</a>
+                    </div>
+                    <div class="app-switcher-item">
+                        <a href="https://rnotes.online">
+                            <span class="app-switcher-badge badge-amber">rN</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rNotes</span><span>&#x1f4dd;</span></div>
+                                <div class="app-switcher-item-desc">Group note-taking &amp; knowledge capture</div>
+                            </div>
+                        </a>
+                        <a href="https://rnotes.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rnotes.online">&#8599;</a>
+                    </div>
+                    <div class="app-switcher-item">
+                        <a href="https://rpubs.online">
+                            <span class="app-switcher-badge badge-rose">rP</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rPubs</span><span>&#x1f4f0;</span></div>
+                                <div class="app-switcher-item-desc">Collaborative publishing platform</div>
+                            </div>
+                        </a>
+                        <a href="https://rpubs.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rpubs.online">&#8599;</a>
+                    </div>
+                    <!-- Planning -->
+                    <div class="app-switcher-category">Planning</div>
+                    <div class="app-switcher-item">
+                        <a href="https://rcal.online">
+                            <span class="app-switcher-badge badge-sky">rC</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rCal</span><span>&#x1f4c5;</span></div>
+                                <div class="app-switcher-item-desc">Collaborative scheduling &amp; events</div>
+                            </div>
+                        </a>
+                        <a href="https://rcal.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rcal.online">&#8599;</a>
+                    </div>
+                    <div class="app-switcher-item">
+                        <a href="https://rtrips.online">
+                            <span class="app-switcher-badge badge-emerald">rT</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rTrips</span><span>&#x2708;&#xfe0f;</span></div>
+                                <div class="app-switcher-item-desc">Group travel planning in real time</div>
+                            </div>
+                        </a>
+                        <a href="https://rtrips.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rtrips.online">&#8599;</a>
+                    </div>
+                    <div class="app-switcher-item">
+                        <a href="https://rmaps.online">
+                            <span class="app-switcher-badge badge-green">rM</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rMaps</span><span>&#x1f5fa;&#xfe0f;</span></div>
+                                <div class="app-switcher-item-desc">Collaborative real-time mapping</div>
+                            </div>
+                        </a>
+                        <a href="https://rmaps.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rmaps.online">&#8599;</a>
+                    </div>
+                    <!-- Discussing & Deciding -->
+                    <div class="app-switcher-category">Discussing &amp; Deciding</div>
+                    <div class="app-switcher-item">
+                        <a href="https://rinbox.online">
+                            <span class="app-switcher-badge badge-indigo">rI</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rInbox</span><span>&#x1f4ec;</span></div>
+                                <div class="app-switcher-item-desc">Private group messaging</div>
+                            </div>
+                        </a>
+                        <a href="https://rinbox.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rinbox.online">&#8599;</a>
+                    </div>
+                    <div class="app-switcher-item">
+                        <a href="https://rchoices.online">
+                            <span class="app-switcher-badge badge-fuchsia">rCh</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rChoices</span><span>&#x1f500;</span></div>
+                                <div class="app-switcher-item-desc">Collaborative decision making</div>
+                            </div>
+                        </a>
+                        <a href="https://rchoices.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rchoices.online">&#8599;</a>
+                    </div>
+                    <div class="app-switcher-item">
+                        <a href="https://rvote.online">
+                            <span class="app-switcher-badge badge-violet">rV</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rVote</span><span>&#x1f5f3;&#xfe0f;</span></div>
+                                <div class="app-switcher-item-desc">Real-time polls &amp; governance</div>
+                            </div>
+                        </a>
+                        <a href="https://rvote.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rvote.online">&#8599;</a>
+                    </div>
+                    <!-- Funding & Commerce -->
+                    <div class="app-switcher-category">Funding &amp; Commerce</div>
+                    <div class="app-switcher-item">
+                        <a href="https://rfunds.online">
+                            <span class="app-switcher-badge badge-lime">rF</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rFunds</span><span>&#x1f4b8;</span></div>
+                                <div class="app-switcher-item-desc">Collaborative fundraising &amp; grants</div>
+                            </div>
+                        </a>
+                        <a href="https://rfunds.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rfunds.online">&#8599;</a>
+                    </div>
+                    <div class="app-switcher-item current">
+                        <a href="https://rwallet.online">
+                            <span class="app-switcher-badge badge-yellow">rW</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rWallet</span><span>&#x1f4b0;</span></div>
+                                <div class="app-switcher-item-desc">Multi-chain crypto wallet</div>
+                            </div>
+                        </a>
+                        <a href="https://rwallet.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rwallet.online">&#8599;</a>
+                    </div>
+                    <div class="app-switcher-item">
+                        <a href="https://rcart.online">
+                            <span class="app-switcher-badge badge-orange">rCt</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rCart</span><span>&#x1f6d2;</span></div>
+                                <div class="app-switcher-item-desc">Group commerce &amp; shared shopping</div>
+                            </div>
+                        </a>
+                        <a href="https://rcart.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rcart.online">&#8599;</a>
+                    </div>
+                    <div class="app-switcher-item">
+                        <a href="https://rauctions.online">
+                            <span class="app-switcher-badge badge-red">rA</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rAuctions</span><span>&#x1f528;</span></div>
+                                <div class="app-switcher-item-desc">Live auction platform</div>
+                            </div>
+                        </a>
+                        <a href="https://rauctions.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rauctions.online">&#8599;</a>
+                    </div>
+                    <!-- Social & Sharing -->
+                    <div class="app-switcher-category">Social &amp; Sharing</div>
+                    <div class="app-switcher-item">
+                        <a href="https://rnetwork.online">
+                            <span class="app-switcher-badge badge-blue">rNe</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rNetwork</span><span>&#x1f310;</span></div>
+                                <div class="app-switcher-item-desc">Community network &amp; social graph</div>
+                            </div>
+                        </a>
+                        <a href="https://rnetwork.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rnetwork.online">&#8599;</a>
+                    </div>
+                    <div class="app-switcher-item">
+                        <a href="https://rfiles.online">
+                            <span class="app-switcher-badge badge-cyan">rFi</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rFiles</span><span>&#x1f4c1;</span></div>
+                                <div class="app-switcher-item-desc">Collaborative file storage</div>
+                            </div>
+                        </a>
+                        <a href="https://rfiles.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rfiles.online">&#8599;</a>
+                    </div>
+                    <div class="app-switcher-item">
+                        <a href="https://rtube.online">
+                            <span class="app-switcher-badge badge-pink">rTu</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rTube</span><span>&#x1f3ac;</span></div>
+                                <div class="app-switcher-item-desc">Group video platform</div>
+                            </div>
+                        </a>
+                        <a href="https://rtube.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rtube.online">&#8599;</a>
+                    </div>
+                    <div class="app-switcher-item">
+                        <a href="https://rdata.online">
+                            <span class="app-switcher-badge badge-purple">rD</span>
+                            <div class="app-switcher-item-info">
+                                <div class="app-switcher-item-name"><span>rData</span><span>&#x1f4ca;</span></div>
+                                <div class="app-switcher-item-desc">Analytics &amp; insights dashboard</div>
+                            </div>
+                        </a>
+                        <a href="https://rdata.online" target="_blank" rel="noopener noreferrer" class="app-switcher-ext" title="rdata.online">&#8599;</a>
+                    </div>
+                    <!-- Footer -->
+                    <div class="app-switcher-footer">
+                        <a href="https://rstack.online">rstack.online &mdash; self-hosted, community-run</a>
+                    </div>
+                </div>
+            </div>
             <div style="display:flex;align-items:center;gap:1rem;">
                 <a href="#" id="nav-demo-link" style="color:var(--text-dim);text-decoration:none;font-size:0.875rem;">Demo</a>
                 <a href="#" onclick="document.getElementById('wallet-input').focus();return false;" style="color:var(--text-dim);text-decoration:none;font-size:0.875rem;">Explore Wallet</a>
@@ -852,6 +1277,31 @@
             e.preventDefault();
             navigateToWallet(DEMO_ADDRESS);
         });
+
+        // ─── AppSwitcher Toggle ──────────────────────────────────────
+        (function() {
+            var trigger = document.getElementById('app-switcher-trigger');
+            var dropdown = document.getElementById('app-switcher-dropdown');
+            var switcher = document.getElementById('app-switcher');
+
+            trigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dropdown.classList.toggle('open');
+            });
+
+            document.addEventListener('click', function(e) {
+                if (switcher && !switcher.contains(e.target)) {
+                    dropdown.classList.remove('open');
+                }
+            });
+
+            // Close on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    dropdown.classList.remove('open');
+                }
+            });
+        })();
 
         // If viz cards don't have an address param yet, add the demo address on click
         // (only if user hasn't entered their own)
